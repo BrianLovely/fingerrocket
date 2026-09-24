@@ -233,10 +233,37 @@ class Blueprint extends debris{
     }
 }
 
-class Fragment extends debris{
+class Raw extends debris{
+    public $name = "Raw";
+    public $type = 1;
+    public $typeId = 35;
     public $material;
-    public $isPlate = FALSE;
-    public $typeId = 33;
+
+    public function setMaterial($material){
+        $materials = array("Wood", "Vanadium", "Iron", "Titanium", "Chromium", "Steel", "Tungsten", "Mithril", "Admantium");
+        if(in_array($material, $materials, true)){
+            $this->material = $material;
+            return true;
+        }
+        return false;
+    }
+
+    public function getMaterial(){
+        return $this->material;
+    }
+
+    public function getName(){
+        return $this->material ? $this->name . " " . $this->material : $this->name;
+    }
+}
+
+
+
+class PlateFragment extends debris{
+    public $name= "Plate";
+    public $type = 1;
+    public $typeId = 34;
+    public $material;
 
     public function setMaterial($material){
         $this->material = $material;
@@ -246,33 +273,9 @@ class Fragment extends debris{
         return $this->material;
     }
 
-    public function setIsPlate($isPlate){
-        $this->isPlate = $isPlate;
-    }
-
-    public function getIsPlate(){
-        return $this->isPlate;
-    }
-
     public function getName(){
-        $frag = "Fragment";
-        if($this->isPlate){
-            $frag = "Plate";
-        }
-        $material = $this->getMaterial();
-        $temp = $frag . " of " . $material;
-        return $temp;
-    }
-    public $name = "Fragment";
-    public $type = 1;
-
-    
-    
-};//Close class Fragment
-
-class Plate extends Fragment{
-    public $isPlate = TRUE;
-    public $typeId = 34;
+        return $this->material ? $this->name . " " . $this->material : $this->name;
+    }      
 }
 
 

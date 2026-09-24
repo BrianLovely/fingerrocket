@@ -172,6 +172,152 @@ public function readBlueprint($bluePrintId){
 
 }
 
+private function inventoryValue($item, $field){
+    if(is_array($item)){
+        return $item[$field] ?? NULL;
+    }
+    return $item->{$field} ?? NULL;
+}
+
+private function hasInventoryRequirements($requirements, $material = NULL){
+    foreach($requirements as $requirement){
+        $count = 0;
+        foreach($this->itemArray as $items){
+            foreach($items as $item){
+                if($this->inventoryValue($item, 'typeId') == $requirement['typeId']
+                    && ($material === NULL || $this->inventoryValue($item, 'material') === $material)){
+                    $count++;
+                }
+            }
+        }
+        if($count < $requirement['count']){
+            return false;
+        }
+    }
+    return true;
+}
+
+private function removeInventoryRequirements($requirements, $material = NULL){
+    foreach($requirements as $requirement){
+        $remaining = $requirement['count'];
+        foreach($this->itemArray as $groupIndex => &$items){
+            for($itemIndex = count($items) - 1; $itemIndex >= 0 && $remaining > 0; $itemIndex--){
+                $item = $items[$itemIndex];
+                if($this->inventoryValue($item, 'typeId') == $requirement['typeId']
+                    && ($material === NULL || $this->inventoryValue($item, 'material') === $material)){
+                    array_splice($items, $itemIndex, 1);
+                    $remaining--;
+                }
+            }
+        }
+        unset($items);
+    }
+}
+
+private function findCraftMaterial($requirements){
+    $materials = array();
+    foreach($this->itemArray as $items){
+        foreach($items as $item){
+            $material = $this->inventoryValue($item, 'material');
+            if($material !== NULL && !in_array($material, $materials, true)){
+                $materials[] = $material;
+            }
+        }
+    }
+    foreach($materials as $material){
+        if($this->hasInventoryRequirements($requirements, $material)){
+            return $material;
+        }
+    }
+    return NULL;
+}
+
+public function craftBlueprint($blueprintId){
+    $blueprintIndex = NULL;
+    $blueprint = NULL;
+    foreach($this->itemArray[2] as $index => $item){
+        if($this->inventoryValue($item, 'id') === $blueprintId){
+            $blueprintIndex = $index;
+            $blueprint = $item;
+            break;
+        }
+    }
+    if($blueprint === NULL){
+        return array('success' => false, 'error' => 'Blueprint not found in your inventory.');
+    }
+
+    $module = $this->inventoryValue($blueprint, 'module') ?: $this->inventoryValue($blueprint, 'name');
+    $requirements = NULL;
+    $result = NULL;
+    $material = NULL;
+    switch($module){
+        case 'Nose Cone':
+            $requirements = array(array('typeId' => 10, 'count' => 1), array('typeId' => 11, 'count' => 1), array('typeId' => 13, 'count' => 1));
+            $result = new nCone();
+            break;
+        case 'Payload Module':
+            $requirements = array(array('typeId' => 14, 'count' => 1), array('typeId' => 15, 'count' => 1), array('typeId' => 13, 'count' => 1));
+            $result = new Payload();
+            break;
+        case 'Propulsion Module':
+            $requirements = array(array('typeId' => 12, 'count' => 1), array('typeId' => 17, 'count' => 1), array('typeId' => 16, 'count' => 1));
+            $result = new pModule();
+            break;
+        case 'Plate':
+            $requirements = array(array('typeId' => 29, 'count' => 4), array('typeId' => 30, 'count' => 2), array('typeId' => 31, 'count' => 2), array('typeId' => 35, 'count' => 1));
+            $result = new Plate();
+            break;
+        case 'Bulwark':
+            $requirements = array(array('typeId' => 34, 'count' => 4), array('typeId' => 29, 'count' => 6), array('typeId' => 30, 'count' => 3), array('typeId' => 31, 'count' => 3), array('typeId' => 35, 'count' => 3));
+            $result = new Bulwark();
+            break;
+        case 'Bastion':
+            $requirements = array(array('typeId' => 1003, 'count' => 2), array('typeId' => 34, 'count' => 4), array('typeId' => 29, 'count' => 8), array('typeId' => 30, 'count' => 6), array('typeId' => 31, 'count' => 6), array('typeId' => 35, 'count' => 5));
+            $result = new Bastion();
+            break;
+        case 'Rampart':
+            $requirements = array(array('typeId' => 1006, 'count' => 3), array('typeId' => 1003, 'count' => 2), array('typeId' => 34, 'count' => 4), array('typeId' => 29, 'count' => 20), array('typeId' => 30, 'count' => 12), array('typeId' => 31, 'count' => 12), array('typeId' => 35, 'count' => 10));
+            $result = new Rampart();
+            break;
+        case 'Cladding':
+            $requirements = array(array('typeId' => 1005, 'count' => 1), array('typeId' => 1006, 'count' => 2), array('typeId' => 1003, 'count' => 4), array('typeId' => 34, 'count' => 20), array('typeId' => 29, 'count' => 50), array('typeId' => 30, 'count' => 20), array('typeId' => 31, 'count' => 20), array('typeId' => 35, 'count' => 20));
+            $result = new Cladding();
+            break;
+        default:
+            return array('success' => false, 'error' => 'This blueprint has no crafting recipe.');
+    }
+
+    $requiresMaterial = $this->inventoryValue($result, 'type') == 1;
+    if($requiresMaterial){
+        $material = $this->findCraftMaterial($requirements);
+        if($material === NULL || !$this->hasInventoryRequirements($requirements, $material)){
+            return array('success' => false, 'error' => 'You do not have the required debris fragments.');
+        }
+    } elseif(!$this->hasInventoryRequirements($requirements)){
+        return array('success' => false, 'error' => 'You do not have the required debris fragments.');
+    }
+    $this->removeInventoryRequirements($requirements, $material);
+    if($this->inventoryValue($result, 'id') === NULL || $this->inventoryValue($result, 'id') === 0){
+        $result->id = uniqid();
+    }
+    if($requiresMaterial){
+        $result->setMaterial($material);
+    }
+    if($module === 'Cladding'){
+        $this->fortress->setCraftedCladding($this->materialNameToId($material));
+    } else {
+        $this->itemArray[3][] = $result;
+    }
+    $this->store();
+    return array('success' => true, 'crafted' => $module);
+}
+
+private function materialNameToId($material){
+    $materials = array('Wood', 'Vanadium', 'Iron', 'Titanium', 'Chromium', 'Steel', 'Tungsten', 'Mithril', 'Admantium');
+    $id = array_search($material, $materials, true);
+    return $id === false ? 0 : $id;
+}
+
 public function hasItem($typeId, $count = 1){
     $success = false;
     $stock = 0;

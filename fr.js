@@ -67,7 +67,7 @@ $(document).ready(function() {
     }
 
     function updateWorkshop(items){
-        $("#rocket_parts, #cladding_parts, #blueprints").find("p").remove();
+        $("#rocket_parts, #cladding_parts, #blueprints, #crafted_items").find("p, button.blueprint").remove();
         if (!Array.isArray(items)) {
             return;
         }
@@ -83,7 +83,14 @@ $(document).ready(function() {
         }
         if(items[2].length > 0){
             $.each( items[2], function( key, value ) {
-                $("#blueprints").append("<p>" + (value.module || value.name || value) + "</p>");
+                var blueprintId = value.id || '';
+                var blueprintName = value.module || value.name || value;
+                $("#blueprints").append("<button type='button' class='blueprint' data-blueprint-id='" + blueprintId + "'>Craft " + blueprintName + "</button>");
+            });
+        }
+        if(items[3] && items[3].length > 0){
+            $.each(items[3], function(key, value){
+                $("#crafted_items").append("<p>" + (value.name || value) + "</p>");
             });
         }
     }
@@ -139,6 +146,28 @@ $(document).ready(function() {
             });
         }, 2000);
     }
+
+    $(document).on('click', '.blueprint', function(){
+        var blueprintId = $(this).data('blueprint-id');
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            data: {craft_blueprint_id: blueprintId},
+            success: function(data){
+                var jsonData = JSON.parse(data);
+                if (!jsonData['craft'] || !jsonData['craft']['success']) {
+                    var craftError = jsonData['craft'] && jsonData['craft']['error'];
+                    $('#player_error').text(craftError || 'Blueprint crafting failed.');
+                    return;
+                }
+                updatePlayer(data, true);
+                updateOpponent(data);
+            },
+            error: function(){
+                $('#player_error').text('Blueprint crafting failed.');
+            }
+        });
+    });
 
       /* Log In */
         $('#fr_login').submit(function(e) {  

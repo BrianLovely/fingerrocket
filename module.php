@@ -38,7 +38,18 @@ public function setName($name){
 }
 
 public function getName(){
+    if($this->type == 1 && !empty($this->material)){
+        return $this->material . " " . $this->name;
+    }
     return $this->name;
+}
+
+public function setMaterial($material){
+    $this->material = $material;
+}
+
+public function getMaterial(){
+    return $this->material ?? NULL;
 }
 
 
@@ -79,13 +90,21 @@ class pModule extends Module{
     public $typeId = 1002;
 }//End class pModule
 
+class Plate extends Module{
+    public $name = "Plate";
+    public $type = 1;
+    public $material;
+    public $recipe = '{"Rivet":4,"Strut":2,"Brace":2,"Raw":1}';
+    public $typeId = 1008;
+}//End class Plate
+
 
 
 class Bulwark extends Module{
     public $name = "Bulwark";
     public $type = 1;
     public $material;
-    public $recipe = '{"Rivet":25, "Plate":9, "Strut":5,"Brace":4}';
+    public $recipe = '{"Plate":4,"Rivet":6,"Strut":3,"Brace":3,"Raw":3}';
     public $typeId = 1003;
 
     public function setMaterial($material){
@@ -99,8 +118,8 @@ class Bulwark extends Module{
     public function getFullName(){
         $material = $this->getMaterial();
         $temp = $this->getName();
-        $name = $meterial . " " . $temp;
-        return $name;
+            $name = $material . " " . $temp;
+            return $name;
     }
 }//End class Bulwark
 
@@ -116,7 +135,7 @@ class Rampart extends Bulwark{
     public $name = "Rampart";
     public $type = 1;
     public $material;
-    public $recipe = '{"Rivet":12, "Plate":4, "Brace":6}';
+    public $recipe = '{"Bastion":3,"Bulwark":2,"Plate":4,"Rivet":20,"Strut":12,"Brace":12,"Raw":10}';
     public $typeId = 1005;
 }//End class Rampart
 
@@ -124,7 +143,7 @@ class Bastion extends Bulwark{
     public $name = "Bastion";
     public $type = 1;
     public $material;
-    public $recipe = '{"Bulwark":4, "Buttress":2';
+    public $recipe = '{"Bulwark":2,"Plate":4,"Rivet":8,"Strut":6,"Brace":6,"Raw":5}';
     public $isComplex = TRUE;
     public $typeId = 1006;
 }//End class Bastion
@@ -133,7 +152,7 @@ class Cladding extends Module{
     public $name = "Cladding";
     public $type = 1;
     public $material;
-    public $recipe = '{"Bastion":2, "Bulwark":3, "Rampart":6}';
+    public $recipe = '{"Rampart":1,"Bastion":2,"Bulwark":4,"Plate":20,"Rivet":50,"Strut":20,"Brace":20,"Raw":20}';
     public $isComplex = TRUE;
     public $typeId = 1007;
 }//End class Cladding

@@ -980,6 +980,15 @@ if(isset($_POST['refresh_playerId']) && isset($_POST['refresh_handlerId'])){
     unset($_POST['refresh_handlerId']);
 }//End game state refresh
 
+if(isset($_POST['craft_blueprint_id'])){
+    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
+    $craft = $ch->player->craftBlueprint($_POST['craft_blueprint_id']);
+    $response = json_decode($ch->package(), true);
+    $response['craft'] = $craft;
+    echo json_encode($response);
+    unset($_POST['craft_blueprint_id']);
+}//End blueprint crafting
+
 
 
 if (isset($_POST['fr_test'])) {

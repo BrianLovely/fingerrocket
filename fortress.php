@@ -749,6 +749,19 @@ class Fortress
                 $this->store(); 
         }
 
+        public function setCraftedCladding($type){
+            $resistance = array(0, 20, 30, 40, 50, 60, 70, 80, 90);
+            if(!isset($resistance[$type])){
+                return false;
+            }
+            $this->cladding = $type;
+            $this->storedCladding = $type;
+            $this->setDamageResistance($resistance[$type]);
+            $this->setHitResistance($resistance[$type]);
+            $this->store();
+            return true;
+        }
+
         public function sortArmory(){
             $tempArray = usort(
                 $this->getArmory(), 

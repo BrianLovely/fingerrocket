@@ -120,7 +120,7 @@ public function getCladdingDebris($material){
         $type->setMaterial($material);
     }
     if($roll > 50 && $roll <= 80){
-        $type = new Plate();
+        $type = new PlateFragment();
         $type->setMaterial($material);
     }
     if($roll > 80 && $roll <= 90){

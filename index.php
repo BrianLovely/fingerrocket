@@ -104,6 +104,9 @@
                     <div id="blueprints">
                         <h3>Blueprints</h3>
                     </div>
+                    <div id="crafted_items">
+                        <h3>Crafted Items</h3>
+                    </div>
                 </div>
             </form>
         </div><!-- End workshop div -->
