@@ -88,7 +88,6 @@ $(document).ready(function() {
         }
     }
 
-
     function updateOpponent(data){
         /* Display fortress two values */
         var opponentData = JSON.parse(data);

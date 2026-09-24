@@ -33,6 +33,7 @@ class combatHandler
     public $resistRoll = 10;
     public $hitBonus = 10;
     public $playerUp = "player";
+    public $affinityRules = array();
     public $dh;
     
     
@@ -212,6 +213,28 @@ class combatHandler
         $stmt->bind_param("ss", $playerId, $this->id);
         $stmt->execute();
         $stmt->close();
+    }
+
+    public function generateAffinityRules(){
+        $rules = array();
+        for($rocketType = 0; $rocketType <= 7; $rocketType++){
+            $materials = range(0, 8);
+            shuffle($materials);
+            $rules[(string)$rocketType] = array('strong' => $materials[0], 'weak' => $materials[1]);
+        }
+        return $rules;
+    }
+
+    public function ensureAffinityRules(){
+        if(empty($this->affinityRules)){
+            $this->affinityRules = $this->generateAffinityRules();
+            $affinities = json_encode($this->affinityRules);
+            $stmt = $this->mysqli->prepare("UPDATE gamehandler SET affinities = ? WHERE id = ?");
+            $stmt->bind_param("ss", $affinities, $this->id);
+            $stmt->execute();
+            $stmt->close();
+        }
+        return $this->affinityRules;
     }
 
     public function addToGameLog($string){
@@ -447,35 +470,14 @@ class combatHandler
     }
 
     public function handleAffinity($rocketType, $material){
-        $affinity = NULL;
-        if($rocketType == 3 && $material == 1){
-            $affinity = true;
+        $rules = $this->affinityRules[(string)$rocketType] ?? array();
+        if(isset($rules['strong']) && $material == $rules['strong']){
+            return true;
         }
-        if($rocketType == 4 && $material == 2){
-            $affinity = true;
+        if(isset($rules['weak']) && $material == $rules['weak']){
+            return false;
         }
-        if($rocketType == 5 && $material == 3){
-            $affinity = true;
-        }
-        if($rocketType == 0 && $material == 3){
-            $affinity = false;
-        }
-        if($rocketType == 6 && $material == 3){
-            $affinity = true;
-        }
-        if($rocketType == 1 && $material == 5){
-            $affinity = false;
-        }
-        if($rocketType == 2 && $material == 6){
-            $affinity = false;
-        }
-        if($rocketType == 3 && $material == 7){
-            $affinity = false;
-        }
-        if($rocketType == 4 && $material == 8){
-            $affinity = true;
-        }
-        return $affinity;
+        return NULL;
     }
 
     public function handleCombat($rocket){
@@ -618,6 +620,8 @@ function selectCombatHandler($hId){
     $this->id = $row['id'];
     $this->playerUp = $row['playerUp'];
     $this->gameLog = json_decode($row['gameLog']);
+    $this->affinityRules = !empty($row['affinities']) ? json_decode($row['affinities'], true) : array();
+    $this->ensureAffinityRules();
     $this->p1 = $row['p1'];
     $this->f1 = $row['f1'];
     $this->p2 = $row['p2'];
@@ -799,6 +803,8 @@ public function findHandlerForBothPlayers($pId, $oId){
     $this->p1 = $row['p1'];
     $this->p2 = $row['p2'];
     $this->playerUp = $row['playerUp'];
+    $this->affinityRules = !empty($row['affinities']) ? json_decode($row['affinities'], true) : array();
+    $this->ensureAffinityRules();
     $this->selectFriend($oId);
     $this->selectPlayer($pId);
     $playerFortressId = $row['p1'] === $pId ? $row['f1'] : $row['f2'];
