@@ -1,0 +1,1 @@
+"C:\MAMP\bin\php\php8.3.1\php.exe" -n -d display_errors=1 -d variables_order=EGPCS "C:\Users\brian\Documents\fingerrocket\verify_login_selection.php" > "C:\Users\brian\Documents\fingerrocket\verify_login_selection.out" 2>&1

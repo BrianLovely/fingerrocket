@@ -1,0 +1,78 @@
+
+div#gameLog {
+  height: 18em;
+  overflow:scroll;
+  font-family:'American Typewriter', Georgia, 'Times New Roman', Times, serif;
+}
+
+
+textarea {
+    width: 800px;
+}
+div.container {
+    display: flex;
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+h1, h2, #login {
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+div.column {
+    margin: 0px 50px 50px 0px;
+    
+}
+
+div.points, div.cladding, div.emplacement, div.gunshop, div.cladding, div.rocket {
+    margin-bottom: 10px;
+}
+
+div#f1_error, div#f2_error {
+    color: red;
+}
+
+.gunshop,  #login, .monitor, .gameLog, .column {
+    border: 3px solid #545454;
+    border-radius: 20px;
+    padding: 10px;
+}
+
+
+
+.gunshop, .cladding, .flak {
+    margin-bottom: 5px;
+}
+
+#login {
+    margin: 10px;
+    overflow: hidden;
+}
+
+#fr_fort {
+    display: none;
+}
+
+.authenticated {
+    display: block !important;
+}
+
+#fr_login div, #fr_signup div {
+    margin-bottom: 10px;
+}
+
+.hidden {
+     display: none; 
+}
+
+#loginForm, #signupForm, #gameOptions {
+    float: left;
+    margin-right: 10px;
+}
+
+
+
+
+
+
+  
+ 
