@@ -29,7 +29,7 @@ $(document).ready(function() {
         
       }
 
-          function updatePlayer(data){
+        function updatePlayer(data, replaceLog){
         /* Display fortress one values */
         console.log(data);
         var playerData = JSON.parse(data);
@@ -37,6 +37,13 @@ $(document).ready(function() {
                 $('#player_error').text(playerData['error'] || 'The game state is incomplete. Refresh and choose the game again.');
                 return false;
             }
+        var isPlayerTurn = playerData['playerUp'] === playerData['player']['id'];
+        $('#player_attack').prop('disabled', !isPlayerTurn);
+        if (!isPlayerTurn) {
+            $('#player_error').text('Wait for the other player to take their turn.');
+        } else {
+            $('#player_error').text('');
+        }
         sessionStorage.setItem('playerId', playerData['player']['id']);
         sessionStorage.setItem('handlerId', playerData['handlerId']);
         var playerArmory = playerData['f1']['armory'];
@@ -44,7 +51,7 @@ $(document).ready(function() {
         var items = JSON.parse(playerData['player']['items'] || '[]');
         console.log("items: " + items[1]);
         updateWorkshop(items);
-        updateLog(log);
+        updateLog(log, replaceLog);
        $('#link_friend_form_playerId').val(playerData['player']['id']);
         $('#player_points').val(playerData['f1']['points']);
         $('#player_heading').text(playerData['f1']['name']);
@@ -95,15 +102,43 @@ $(document).ready(function() {
     }
 
 
-    function updateLog(log){
+    function updateLog(log, replaceLog){
         // Display Game Log 
-        //$("#gameLog").empty();
+        if (replaceLog) {
+            $("#gameLog").empty();
+        }
         $.each( log, function( key, value ) {
             $("#gameLog").prepend("<p>" + value + "</p>");
         }); 
     }
 
     function appendOption($data){
+    }
+
+    var gamePoll;
+
+    function startGamePolling(){
+        if (gamePoll) {
+            clearInterval(gamePoll);
+        }
+        gamePoll = setInterval(function(){
+            var playerId = sessionStorage.getItem('playerId');
+            var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
+            if (!playerId || !handlerId) {
+                return;
+            }
+            $.ajax({
+                type: 'POST',
+                url: 'handler.php',
+                data: {refresh_playerId: playerId, refresh_handlerId: handlerId},
+                success: function(data){
+                    var jsonData = JSON.parse(data);
+                    if (!jsonData['error'] && updatePlayer(data, true)) {
+                        updateOpponent(data);
+                    }
+                }
+            });
+        }, 2000);
     }
 
       /* Log In */
@@ -133,7 +168,7 @@ $(document).ready(function() {
                         $("#gameOptions").removeClass('hidden');
                         $(".account_switch").addClass('hidden');
                         fData = jsonData['fortresses'];
-                        if (Array.isArray(fData) && fData.length > 1) {
+                        if (Array.isArray(fData)) {
                             $.each(fData, function(key, value) {
                                 $("#options_fieldset").append("<div class='option'><input type='radio' name='options_handlerId' id='" + key + "' value='" + value['handlerId'] + "'/>" + "<label for='" + key + "'>" + value['playerFortressName'] + " with " + value['playerFortressPoints'] + " points, versus " + value['opponentFortressName'] + " with " + value['opponentFortressPoints'] + " points</label></div>");
                             });
@@ -286,10 +321,11 @@ $(document).ready(function() {
             data: $(this).serialize(),
             success: function(data)
             {
-               updatePlayer(data);
+                    updatePlayer(data, true);
                updateOpponent(data);
                var jsonData = JSON.parse(data);
                sessionStorage.setItem('hId', jsonData['handlerId']);
+                    startGamePolling();
                 /* $("." + data).addClass("authenticated");
                 $(".gamelog").addClass("authenticated");
                 $(".monitor").addClass("authenticated");

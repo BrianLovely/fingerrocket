@@ -177,6 +177,43 @@ class combatHandler
         //echo "storeGameLog sanity: " . $this->id . "<br/>";
     }
 
+    public function getTurnPlayerId(){
+        if($this->playerUp === 'player'){
+            return $this->p1;
+        }
+        if($this->playerUp === 'opponent'){
+            return $this->p2;
+        }
+        return $this->playerUp;
+    }
+
+    public function isPlayerTurn($pId, $hId){
+        $sql = "SELECT p1, p2, playerUp FROM gamehandler WHERE id = ?";
+        $stmt = $this->mysqli->prepare($sql);
+        $stmt->bind_param("s", $hId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if($row === NULL){
+            return false;
+        }
+        $turnPlayerId = $row['playerUp'];
+        if($turnPlayerId === 'player'){
+            $turnPlayerId = $row['p1'];
+        } elseif($turnPlayerId === 'opponent'){
+            $turnPlayerId = $row['p2'];
+        }
+        return $turnPlayerId === $pId;
+    }
+
+    public function storeTurn($playerId){
+        $sql = "UPDATE gamehandler SET playerUp = ? WHERE id = ?";
+        $stmt = $this->mysqli->prepare($sql);
+        $stmt->bind_param("ss", $playerId, $this->id);
+        $stmt->execute();
+        $stmt->close();
+    }
+
     public function addToGameLog($string){
         array_push($this->gameLog, $string);
         array_push($this->gameLogBuffer, $string);
@@ -456,6 +493,8 @@ class combatHandler
         
         if($rocket->name == "Cluster Rocket"){
             $this->handleCluster($attacker, $defender);
+            $this->playerUp = $this->opponent->getId();
+            $this->storeTurn($this->playerUp);
             return;
         }
         $this->addToGameLog($attacker->getName() . " attacks " . $defender->getName() . " with a " . $rocket->name . "!");
@@ -492,6 +531,8 @@ class combatHandler
         $this->storeGameLog();
         $this->player->fortress->store();
         $this->opponent->fortress->store();
+        $this->playerUp = $this->opponent->getId();
+        $this->storeTurn($this->playerUp);
         
 
     }//End function handleCombat
@@ -530,7 +571,7 @@ class combatHandler
         if($this->opponent != NULL){
             $array['opponent'] = $this->opponent->package();
         }
-        $array['playerUp'] = $this->playerUp;
+        $array['playerUp'] = $this->getTurnPlayerId();
         if($this->gameLog != NULL && $log == true){
             
             $array['log'] = array_reverse($this->gameLog);
@@ -755,16 +796,20 @@ public function findHandlerForBothPlayers($pId, $oId){
     }
     $row = $result->fetch_assoc(); 
     mysqli_free_result($result);
+    $this->p1 = $row['p1'];
+    $this->p2 = $row['p2'];
+    $this->playerUp = $row['playerUp'];
     $this->selectFriend($oId);
     $this->selectPlayer($pId);
-    $tFRow = $this->selectFortress($row['f1']);
+    $playerFortressId = $row['p1'] === $pId ? $row['f1'] : $row['f2'];
+    $opponentFortressId = $row['p1'] === $pId ? $row['f2'] : $row['f1'];
+    $tFRow = $this->selectFortress($playerFortressId);
     $tempFortress = $this->setUpFortress($tFRow);
-    //echo "find both sanity check: " . $pId . " & " . $oId . " f1: " . $row['f1'] . "<br/>";
     $this->setF1($tempFortress);
     $this->player->setFortress($tempFortress);
     unset($tFRow);
     unset($tempFortress);
-    $tFRow = $this->selectFortress($row['f2']);
+    $tFRow = $this->selectFortress($opponentFortressId);
     $tempFortress = $this->setUpFortress($tFRow);
     $this->setF2($tempFortress);
     $this->opponent->setFortress($tempFortress);
@@ -921,6 +966,14 @@ if(isset($_POST['options_playerId'])){
     unset($_POST['options_handlerId']);
 }//End handler choose game option
 
+if(isset($_POST['refresh_playerId']) && isset($_POST['refresh_handlerId'])){
+    echo $ch->loadGameFromOptions($_POST['refresh_playerId'], $_POST['refresh_handlerId']);
+    $_SESSION['playerId'] = $_POST['refresh_playerId'];
+    $_SESSION['handlerId'] = $_POST['refresh_handlerId'];
+    unset($_POST['refresh_playerId']);
+    unset($_POST['refresh_handlerId']);
+}//End game state refresh
+
 
 
 if (isset($_POST['fr_test'])) {
@@ -995,14 +1048,19 @@ if(isset($_POST['new_game_playerId'])){
 //$_SESSION['playerId'] = "681f762053cb6";
 //$_SESSION['friendId'] = "681f762053cb5";
  if(isset($_POST['player_rockets'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $rocket = $ch->player->fortress->getRocket($_POST['player_rockets']);
-    if ($rocket === NULL) {
-        echo json_encode(['error' => 'That rocket is no longer available. Refresh the game state and choose another rocket.']);
+    $handlerId = $_SESSION['handlerId'] ?? NULL;
+    if ($handlerId === NULL || !$ch->isPlayerTurn($_SESSION['playerId'], $handlerId)) {
+        echo json_encode(['error' => 'It is not your turn. Wait for the other player to attack.']);
     } else {
-        $ch->handleCombat($rocket);
-        //pass false to package to only update log from buffer
-        echo $ch->package(false);
+        $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
+        $rocket = $ch->player->fortress->getRocket($_POST['player_rockets']);
+        if ($rocket === NULL) {
+            echo json_encode(['error' => 'That rocket is no longer available. Refresh the game state and choose another rocket.']);
+        } else {
+            $ch->handleCombat($rocket);
+            //pass false to package to only update log from buffer
+            echo $ch->package(false);
+        }
     }
     unset($_POST['player_rockets']);
  };
