@@ -13,7 +13,7 @@
         <link rel="manifest" href="/site.webmanifest">
         <link rel="stylesheet" type="text/css" href="styles/fr.css" /> 
        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-       <script src="fr.js"></script>
+    <script src="fr.js?v=20260924"></script>
        
         <title>Finger Rocket Game</title>
         

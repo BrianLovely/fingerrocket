@@ -112,14 +112,53 @@ $(document).ready(function() {
     }
 
 
-    function updateLog(log, replaceLog){
-        // Display Game Log 
-        if (replaceLog) {
-            $("#gameLog").empty();
+    var logQueue = [];
+    var logTimer = null;
+    var knownLogLength = 0;
+    var logInitialized = false;
+
+    function displayNextLogEntry(){
+        if(logQueue.length === 0){
+            logTimer = null;
+            return;
         }
-        $.each( log, function( key, value ) {
-            $("#gameLog").append("<p>" + value + "</p>");
-        }); 
+        $("#gameLog").append("<p>" + logQueue.shift() + "</p>");
+        logTimer = setTimeout(displayNextLogEntry, 10000);
+    }
+
+    function queueLogEntries(entries){
+        logQueue = logQueue.concat(entries);
+        if(logTimer === null){
+            displayNextLogEntry();
+        }
+    }
+
+    function updateLog(log, replaceLog){
+        if (!Array.isArray(log)) {
+            return;
+        }
+        if (replaceLog && !logInitialized) {
+            $("#gameLog").empty();
+            $.each(log, function(key, value){
+                $("#gameLog").append("<p>" + value + "</p>");
+            });
+            knownLogLength = log.length;
+            logInitialized = true;
+            return;
+        }
+        if (replaceLog) {
+            var newCount = log.length - knownLogLength;
+            if(newCount > 0){
+                queueLogEntries(log.slice(0, newCount).reverse());
+            }
+            knownLogLength = log.length;
+            return;
+        }
+        if(log.length > 0){
+            queueLogEntries(log.slice().reverse());
+            knownLogLength += log.length;
+            logInitialized = true;
+        }
     }
 
     function appendOption($data){
@@ -320,7 +359,7 @@ $(document).ready(function() {
                    }
                    return;
                }
-               if (updatePlayer(data, true)) {
+               if (updatePlayer(data, false)) {
                    updateOpponent(data);
                }
             }, error: function(xhr, status, error)
