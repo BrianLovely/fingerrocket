@@ -58,11 +58,15 @@ $(document).ready(function() {
         $('#player_shopName').text(playerData['f1']['name'] + ' Shop');
         $('#player_flak').val(playerData['f1']['flak']);
         $('#player_cladding').val(playerData['f1']['cladding']);
+        var selectedRocket = $('#player_rockets').val();
         $("#player_rockets").empty();
         $("#player_rockets").append("<option>Fire a rocket</option>");
         $.each( playerArmory, function( key, value ) {
             $("#player_rockets").append("<option value='" + value["id"] + "'>" + value["name"] + "</option>");
         }); 
+        if($("#player_rockets option").filter(function(){ return this.value === selectedRocket; }).length){
+            $("#player_rockets").val(selectedRocket);
+        }
         return true;
     }
 
