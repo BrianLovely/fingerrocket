@@ -114,7 +114,7 @@ $(document).ready(function() {
             $("#gameLog").empty();
         }
         $.each( log, function( key, value ) {
-            $("#gameLog").prepend("<p>" + value + "</p>");
+            $("#gameLog").append("<p>" + value + "</p>");
         }); 
     }
 
@@ -122,29 +122,36 @@ $(document).ready(function() {
     }
 
     var gamePoll;
+    var gamePollInFlight = false;
+
+    function refreshGameState(){
+        var playerId = sessionStorage.getItem('playerId');
+        var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
+        if (!playerId || !handlerId || gamePollInFlight) {
+            return;
+        }
+        gamePollInFlight = true;
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            data: {refresh_playerId: playerId, refresh_handlerId: handlerId},
+            success: function(data){
+                var jsonData = JSON.parse(data);
+                if (!jsonData['error'] && updatePlayer(data, true)) {
+                    updateOpponent(data);
+                }
+            },
+            complete: function(){
+                gamePollInFlight = false;
+            }
+        });
+    }
 
     function startGamePolling(){
         if (gamePoll) {
             clearInterval(gamePoll);
         }
-        gamePoll = setInterval(function(){
-            var playerId = sessionStorage.getItem('playerId');
-            var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
-            if (!playerId || !handlerId) {
-                return;
-            }
-            $.ajax({
-                type: 'POST',
-                url: 'handler.php',
-                data: {refresh_playerId: playerId, refresh_handlerId: handlerId},
-                success: function(data){
-                    var jsonData = JSON.parse(data);
-                    if (!jsonData['error'] && updatePlayer(data, true)) {
-                        updateOpponent(data);
-                    }
-                }
-            });
-        }, 2000);
+        gamePoll = setInterval(refreshGameState, 1000);
     }
 
     $(document).on('click', '.blueprint', function(){
@@ -304,9 +311,12 @@ $(document).ready(function() {
                var jsonData = JSON.parse(data);
                if (jsonData['error']) {
                    $('#player_error').text(jsonData['error']);
+                   if (jsonData['error'].indexOf('no longer available') !== -1) {
+                       refreshGameState();
+                   }
                    return;
                }
-               if (updatePlayer(data)) {
+               if (updatePlayer(data, true)) {
                    updateOpponent(data);
                }
             }, error: function(xhr, status, error)
