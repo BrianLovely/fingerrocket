@@ -72,7 +72,7 @@ public function __construct(array $arguments = array()) {
 class nCone extends Module{
     public $name = "Nose Cone";
     public $type = 0;
-    public $recipe = '{"cone": 1,"gSystem": 1,"tube": 1}';
+    
     public $typeId = 1000;
 }//End class nCone
 

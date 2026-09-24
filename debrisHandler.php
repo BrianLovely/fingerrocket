@@ -61,7 +61,7 @@ public function getRocketDebris(){
         $type = new fTank();
     }
     if($roll > 45 && $roll <= 50){
-        $type = new Falanges();
+        $type = new Phalanges();
     }
     if($roll > 50 && $roll <= 55){
         $type = new bMat();

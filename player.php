@@ -251,6 +251,10 @@ public function craftBlueprint($blueprintId){
     $result = NULL;
     $material = NULL;
     switch($module){
+        case 'Finger Rocket':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 18, 'count' => 1));
+            $result = new FingerRocket();
+            break;
         case 'Nose Cone':
             $requirements = array(array('typeId' => 10, 'count' => 1), array('typeId' => 11, 'count' => 1), array('typeId' => 13, 'count' => 1));
             $result = new nCone();
@@ -258,6 +262,26 @@ public function craftBlueprint($blueprintId){
         case 'Payload Module':
             $requirements = array(array('typeId' => 14, 'count' => 1), array('typeId' => 15, 'count' => 1), array('typeId' => 13, 'count' => 1));
             $result = new Payload();
+            break;
+        case 'Dart':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 19, 'count' => 1));
+            $result = new Dart();
+            break;
+        case 'Fletchette':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 20, 'count' => 1));
+            $result = new Flechette();
+            break;
+        case 'Bolt':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 21, 'count' => 1));
+            $result = new Bolt();
+            break;
+        case 'ICYMI':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 22, 'count' => 1));
+            $result = new ICYMI();
+            break;
+        case 'ICBM':
+            $requirements = array(array('typeId' => 1000, 'count' => 1), array('typeId' => 1001, 'count' => 1), array('typeId' => 1002, 'count' => 1), array('typeId' => 23, 'count' => 1), array('typeId' => 24, 'count' => 1));
+            $result = new ICBM();
             break;
         case 'Propulsion Module':
             $requirements = array(array('typeId' => 12, 'count' => 1), array('typeId' => 17, 'count' => 1), array('typeId' => 16, 'count' => 1));
@@ -473,8 +497,8 @@ public function create($typeId){
             $nCone = $this->hasItem(1000);
             $Payload = $this->hasItem(1001);
             $pModule = $this->hasItem(1002);
-            $Falanges = $this->hasItem(18);
-            if($nCone && $Payload && $pModule && $Falanges){
+            $phalanges = $this->hasItem(18);
+            if($nCone && $Payload && $pModule && $phalanges){
                 $this->removeDebrisByTypeId(1000);
                 $this->removeDebrisByTypeId(1001);
                 $this->removeDebrisByTypeId(1002);

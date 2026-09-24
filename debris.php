@@ -125,11 +125,11 @@ class fTank extends debris{
     public $typeId = 17;
 };//Close class fTank
 
-class Falanges extends debris{
-    public $name = "Falanges";
+class Phalanges extends debris{
+    public $name = "Phalanges";
     public $type = 0;
     public $typeId = 18;
-};//Close class Falanges
+};//Close class Phalanges
 
 class bMat extends debris{
     public $name = "Beer Mat";
@@ -215,6 +215,12 @@ class Blueprint extends debris{
     public $typeId = 32;
     public $module;
     public $modules = [
+        "Finger Rocket",
+        "Dart",
+        "Fletchette",
+        "Bolt",
+        "ICYMI",
+        "ICBM",
         "Plate",
         "Bulwark",
         "Bastion",
