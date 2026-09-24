@@ -31,6 +31,7 @@ class combatHandler
     public $gameLogBuffer = array();
     public $mysqli;
     public $resistRoll = 10;
+    public $hitBonus = 10;
     public $playerUp = "player";
     public $dh;
     
@@ -342,7 +343,7 @@ class combatHandler
         $roll = $this->rollDie(10);
         $res = $roll + $hitRes + $cladding;
         $hitSave = $this->rollDie(10);
-        $hitChance = $hitSave + $toHit;
+        $hitChance = $hitSave + $toHit + $this->hitBonus;
         //$this->addToGameLog("Defender resistance D10 roll: " . $roll . " + damageRes: " . $hitRes . " + Cladding: " . $cladding . " Total: " . $res);
         //$this->addToGameLog("Rocket toHit: " . $toHit . " + D10 roll: " . $hitSave . " Total: " . $hitChance); 
         if($res < $hitChance){
@@ -443,6 +444,9 @@ class combatHandler
     public function handleCombat($rocket){
         //echo $this->getId() . " handling combat<br/>";
         /* Ensure lurking POST vars don't trigger unwanted log entries */
+        if ($rocket === NULL) {
+            return false;
+        }
         if(strlen($rocket->id) < 2){
             return false;
         }
@@ -479,7 +483,7 @@ class combatHandler
                 //echo "it is a miss!<br/>";
                 $damRes = $this->rollDie(100);
                 $points = $damRes - $rocket->toHit;
-                $points = $points + $this->basePoints;
+                $points = max(0, $points + $this->basePoints);
                 $defender->addPoints($points);
                 $this->addToGameLog($defender->getName() . " is awarded " . $points . " points!");
             }
@@ -993,12 +997,13 @@ if(isset($_POST['new_game_playerId'])){
  if(isset($_POST['player_rockets'])){
     $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
     $rocket = $ch->player->fortress->getRocket($_POST['player_rockets']);
-   // $rocket = $ch->player->fortress->addICYMI();
-    //echo "post attack sanity<br/>";
-    $ch->handleCombat($rocket);
-    //echo "handle attack sanity<br/>";
-    //pass false to package to only update log from buffer
-    echo $ch->package(false);
+    if ($rocket === NULL) {
+        echo json_encode(['error' => 'That rocket is no longer available. Refresh the game state and choose another rocket.']);
+    } else {
+        $ch->handleCombat($rocket);
+        //pass false to package to only update log from buffer
+        echo $ch->package(false);
+    }
     unset($_POST['player_rockets']);
  };
 

@@ -132,7 +132,7 @@ class TCB extends FingerRocket{
 class CanOfWhoopAss extends FingerRocket{
     public $id = 0;
     public $typeId = 7;
-    public $name = "Finger Rocket";
+    public $name = "Can of Whoop Ass";
     public $toHit = 90;
     public $criticalChance = 10;
     public $dieType = 20;

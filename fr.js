@@ -33,15 +33,18 @@ $(document).ready(function() {
         /* Display fortress one values */
         console.log(data);
         var playerData = JSON.parse(data);
+            if (!playerData['player'] || !playerData['f1']) {
+                $('#player_error').text(playerData['error'] || 'The game state is incomplete. Refresh and choose the game again.');
+                return false;
+            }
         sessionStorage.setItem('playerId', playerData['player']['id']);
         sessionStorage.setItem('handlerId', playerData['handlerId']);
         var playerArmory = playerData['f1']['armory'];
         var log = playerData['log'];
-        var items = playerData['player']['items'];
+        var items = JSON.parse(playerData['player']['items'] || '[]');
         console.log("items: " + items[1]);
-        //updateWorkshop(items);
+        updateWorkshop(items);
         updateLog(log);
-        //updateWorkshop(items);
        $('#link_friend_form_playerId').val(playerData['player']['id']);
         $('#player_points').val(playerData['f1']['points']);
         $('#player_heading').text(playerData['f1']['name']);
@@ -53,22 +56,27 @@ $(document).ready(function() {
         $.each( playerArmory, function( key, value ) {
             $("#player_rockets").append("<option value='" + value["id"] + "'>" + value["name"] + "</option>");
         }); 
+        return true;
     }
 
     function updateWorkshop(items){
+        $("#rocket_parts, #cladding_parts, #blueprints").find("p").remove();
+        if (!Array.isArray(items)) {
+            return;
+        }
         if(items[0].length > 0){
             $.each( items[0], function( key, value ) {
-                $("#rocket_parts").prepend("<p>" + value + "</p>");
+                $("#rocket_parts").append("<p>" + (value.name || value) + "</p>");
             });
         }
         if(items[1].length > 0){
             $.each( items[1], function( key, value ) {
-                $("#cladding_parts").prepend("<p>" + value + "</p>");
+                $("#cladding_parts").append("<p>" + (value.name || value) + "</p>");
             });
         }
         if(items[2].length > 0){
             $.each( items[2], function( key, value ) {
-                $("#blueprints").prepend("<p>" + value + "</p>");
+                $("#blueprints").append("<p>" + (value.module || value.name || value) + "</p>");
             });
         }
     }
@@ -230,8 +238,14 @@ $(document).ready(function() {
             data: $(this).serialize(),
             success: function(data)
             {
-               updatePlayer(data);
-               updateOpponent(data);
+               var jsonData = JSON.parse(data);
+               if (jsonData['error']) {
+                   $('#player_error').text(jsonData['error']);
+                   return;
+               }
+               if (updatePlayer(data)) {
+                   updateOpponent(data);
+               }
             }, error: function(xhr, status, error)
                 {
                     console.log(error);

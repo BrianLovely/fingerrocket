@@ -476,9 +476,9 @@ class Fortress
            $temp->toHit = $armoryArray[$i]['toHit'];
            $temp->criticalChance = $armoryArray[$i]['criticalChance'];
            $temp->dieType = $armoryArray[$i]['dieType'];
-           $temp->debrisChance = $armoryArray[$i]['debrisChance'];
-           $temp->debrisValue = $armoryArray[$i]['debrisValue'];
-           if(strlen($temp->id < 3)){
+           $temp->debrisChance = $armoryArray[$i]['debrisChance'] ?? $temp->debrisChance;
+           $temp->debrisValue = $armoryArray[$i]['debrisValue'] ?? $temp->debrisValue;
+           if(strlen($temp->id) < 3){
             $temp->id = uniqid();
             $tempString = $this->convertArmoryToJson();
             $this->setJsonArmory($tempString);

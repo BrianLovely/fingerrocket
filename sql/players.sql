@@ -31,7 +31,8 @@ CREATE TABLE `players` (
   `id` varchar(25) NOT NULL,
   `fId` varchar(25) DEFAULT NULL,
   `username` varchar(11) NOT NULL,
-  `pass` varchar(25) NOT NULL
+  `pass` varchar(25) NOT NULL,
+  `items` longtext DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --

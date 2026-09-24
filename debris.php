@@ -229,6 +229,7 @@ class Blueprint extends debris{
 
     public function setModule(){
         $this->module = $this->modules[array_rand($this->modules)];
+        $this->name = $this->module;
     }
 }
 
