@@ -10,7 +10,7 @@ class FingerRocket
     public $dieType = 4;
     public $debrisChance = 5;
     public $debrisValue = 1;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Phalanges":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Phalanges":1}';
 
     // Methods
 
@@ -68,7 +68,7 @@ class Dart extends FingerRocket{
     public $dieType = 6;
     public $debrisChance = 5;
     public $debrisValue = 1;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Beer Mat":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Beer Mat":1}';
 }
 class Flechette extends FingerRocket{
     public $id = 0;
@@ -79,7 +79,7 @@ class Flechette extends FingerRocket{
     public $dieType = 6;
     public $debrisChance = 5;
     public $debrisValue = 1;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Needle":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Needle":1}';
 }
 class Bolt extends FingerRocket{
     public $id = 0;
@@ -90,7 +90,7 @@ class Bolt extends FingerRocket{
     public $dieType = 8;
     public $debrisChance = 10;
     public $debrisValue = 2;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Latch":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Latch":1}';
 };
 class ClusterRocket extends FingerRocket{
     public $id = 0;
@@ -105,7 +105,7 @@ class ICYMI extends FingerRocket{
     public $dieType = 10;
     public $debrisChance = 10;
     public $debrisValue = 2;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Highlighter":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Highlighter":1}';
 };
 class ICBM extends FingerRocket{
     public $id = 0;
@@ -116,7 +116,7 @@ class ICBM extends FingerRocket{
     public $dieType = 12;
     public $debrisChance = 10;
     public $debrisValue = 2;
-    public $recipe = '{"Nose Cone":1,"Payload":1,"Propulsion Module":1,"Itinerary":1,"Phrasebook":1}';
+    public $recipe = '{"nCone":1,"Payload":1,"pModule":1,"Itinerary":1,"Phrasebook":1}';
     
 };
 class TCB extends FingerRocket{
