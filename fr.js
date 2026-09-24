@@ -549,6 +549,9 @@ function traverse(jsonObj, jsonElements) {
             $("#hId").val(sessionStorage.getItem('hId'));
             $("#loginForm").addClass('hidden');
             $("#signupForm").addClass('hidden');
+            if (sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId')) {
+                startGamePolling();
+            }
         }
      });
 
