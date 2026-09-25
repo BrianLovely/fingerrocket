@@ -320,6 +320,7 @@ public function craftBlueprint($blueprintId){
     } elseif(!$this->hasInventoryRequirements($requirements)){
         return array('success' => false, 'error' => 'You do not have the required debris fragments.');
     }
+    array_splice($this->itemArray[2], $blueprintIndex, 1);
     $this->removeInventoryRequirements($requirements, $material);
     if($this->inventoryValue($result, 'id') === NULL || $this->inventoryValue($result, 'id') === 0){
         $result->id = uniqid();

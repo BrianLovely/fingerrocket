@@ -38,7 +38,7 @@ CREATE TABLE `fortress` (
   `storedCladding` int(11) NOT NULL,
   `name` text NOT NULL,
   `damage` text,
-  `armory` text NOT NULL
+  `armory` longtext NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --

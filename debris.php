@@ -161,11 +161,11 @@ class Itinerary extends debris{
     public $typeId = 23;
 };//Close class Itinerary
 
-class pBook extends debris{
+class Phrasebook extends debris{
     public $name = "Phrasebook";
     public $type = 0;
     public $typeId = 24;
-};//Close class pBook
+};//Close class Phrasebook
 
 class Lightning extends debris{
     public $name = "Lightning";
@@ -263,13 +263,12 @@ class Raw extends debris{
     }
 }
 
-
-
-class PlateFragment extends debris{
-    public $name= "Plate";
+class Fragment extends debris{
+    public $name = "Fragment";
     public $type = 1;
-    public $typeId = 34;
+    public $typeId = 33;
     public $material;
+    public $isPlate = false;
 
     public function setMaterial($material){
         $this->material = $material;
@@ -279,9 +278,24 @@ class PlateFragment extends debris{
         return $this->material;
     }
 
+    public function setIsPlate($isPlate){
+        $this->isPlate = $isPlate;
+    }
+
+    public function getIsPlate(){
+        return $this->isPlate;
+    }
+
     public function getName(){
-        return $this->material ? $this->name . " " . $this->material : $this->name;
-    }      
+        return ($this->isPlate ? "Plate" : $this->name) . ($this->material ? " " . $this->material : "");
+    }
+}
+
+
+
+class PlateFragment extends Fragment{
+    public $typeId = 34;
+    public $isPlate = true;
 }
 
 

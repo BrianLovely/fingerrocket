@@ -21,10 +21,10 @@ private function rollDie($dieType){
 public function howManyPieces(){
     $number = 0;
     $roll = $this->rollDie(10);
-    if($roll > 4 && $roll <= 7 ){
+    if($roll > 2 && $roll <= 6 ){
        $number = 1;
     }
-    if($roll > 7 && $roll <= 9){
+    if($roll > 6 && $roll <= 9){
         $number = 2;
     }
     if($roll > 9){
@@ -102,7 +102,7 @@ public function getRocketDebris(){
 public function blueprintRoll(){
     $die = $this->rollDie(10);
     $isThere = FALSE;
-    if($die <= 4){
+    if($die <= 6){
         $isThere = TRUE;
     }
     return $isThere;
