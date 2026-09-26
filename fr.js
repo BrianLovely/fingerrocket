@@ -112,25 +112,13 @@ $(document).ready(function() {
     }
 
 
-    var logQueue = [];
-    var logTimer = null;
     var knownLogLength = 0;
     var logInitialized = false;
 
-    function displayNextLogEntry(){
-        if(logQueue.length === 0){
-            logTimer = null;
-            return;
-        }
-        $("#gameLog").append("<p>" + logQueue.shift() + "</p>");
-        logTimer = setTimeout(displayNextLogEntry, 10000);
-    }
-
-    function queueLogEntries(entries){
-        logQueue = logQueue.concat(entries);
-        if(logTimer === null){
-            displayNextLogEntry();
-        }
+    function appendLogEntries(entries){
+        $.each(entries, function(key, value){
+            $("#gameLog").append("<p>" + value + "</p>");
+        });
     }
 
     function updateLog(log, replaceLog){
@@ -149,13 +137,13 @@ $(document).ready(function() {
         if (replaceLog) {
             var newCount = log.length - knownLogLength;
             if(newCount > 0){
-                queueLogEntries(log.slice(0, newCount).reverse());
+                appendLogEntries(log.slice(0, newCount).reverse());
             }
             knownLogLength = log.length;
             return;
         }
         if(log.length > 0){
-            queueLogEntries(log.slice().reverse());
+            appendLogEntries(log.slice().reverse());
             knownLogLength += log.length;
             logInitialized = true;
         }
