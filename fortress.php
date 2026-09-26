@@ -545,7 +545,7 @@ class Fortress
                 break; 
 
             case 8:
-                $temp = 5;
+                $temp = 0;
                 break;
             }
         $tempPoints = $this->getPoints() - $temp;
@@ -844,10 +844,22 @@ class Fortress
                         break;
 
                     case 8:
-                        $tempCost = 5;
-                        if($this->points >= $tempCost){
+                        $tempCost = 0;
+                        $fingerRocketCount = 0;
+                        foreach($this->armory as $rocket){
+                            if((int)$rocket->getTypeId() === 0){
+                                $fingerRocketCount++;
+                            }
+                        }
+                        if($fingerRocketCount >= 5){
+                            $removed = 0;
+                            for($armoryIndex = count($this->armory) - 1; $armoryIndex >= 0 && $removed < 5; $armoryIndex--){
+                                if((int)$this->armory[$armoryIndex]->getTypeId() === 0){
+                                    array_splice($this->armory, $armoryIndex, 1);
+                                    $removed++;
+                                }
+                            }
                             $this->addClusterRocket();
-                           
                         }
                         break;
         }
