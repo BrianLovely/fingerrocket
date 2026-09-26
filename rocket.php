@@ -94,6 +94,7 @@ class Bolt extends FingerRocket{
 };
 class ClusterRocket extends FingerRocket{
     public $id = 0;
+    public $typeId = 8;
     public $name = "Cluster Rocket";
 };
 class ICYMI extends FingerRocket{

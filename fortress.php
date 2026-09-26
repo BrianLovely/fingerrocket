@@ -471,8 +471,8 @@ class Fortress
         for($i = 0; $i < $count; $i++){
            $temp = new FingerRocket();
            $temp->id = $armoryArray[$i]['id'];
-           $temp->typeId = $armoryArray[$i]['typeId'];
            $temp->name = $armoryArray[$i]['name'];
+           $temp->typeId = $temp->name === "Cluster Rocket" ? 8 : $armoryArray[$i]['typeId'];
            $temp->toHit = $armoryArray[$i]['toHit'];
            $temp->criticalChance = $armoryArray[$i]['criticalChance'];
            $temp->dieType = $armoryArray[$i]['dieType'];
@@ -602,6 +602,7 @@ class Fortress
     public function addClusterRocket(){
         $myCluster = new ClusterRocket();
         $myCluster->id = uniqid();
+        $myCluster->typeId = 8;
         $myCluster->name = "Cluster Rocket";
         $this->armory[] = $myCluster;
     }
