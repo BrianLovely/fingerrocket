@@ -20,14 +20,14 @@ private function rollDie($dieType){
 
 public function howManyPieces(){
     $number = 0;
-    $roll = $this->rollDie(10);
-    if($roll > 2 && $roll <= 6 ){
+    $roll = $this->rollDie(100);
+    if($roll > 15 && $roll <= 55){
        $number = 1;
     }
-    if($roll > 6 && $roll <= 9){
+    if($roll > 55 && $roll <= 85){
         $number = 2;
     }
-    if($roll > 9){
+    if($roll > 85){
         $number = 3;
     }
     return $number;
