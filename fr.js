@@ -213,19 +213,21 @@ $(document).ready(function() {
         $.ajax({
         type: "POST",
         url: 'handler.php',
+        dataType: 'json',
         data: $(this).serialize(),
-        success: function(data)
+        success: function(jsonData)
         {
-            if (data != null)
-                {
-                    console.log(data);
-                    $("#loginForm").addClass('hidden');
-                    $("#linkId").removeClass('hidden');
-                    
-                    jsonData = JSON.parse(data);
-                    console.log(jsonData['fortresses']);
-                    sessionStorage.setItem('pId', jsonData['playerId']);
-                    $("#options_playerId").val(jsonData['playerId']);
+            if (!jsonData || !jsonData['playerExists']) {
+                $('#login_error').text('Invalid email or password.').removeClass('hidden');
+                return;
+            }
+
+            $('#login_error').text('').addClass('hidden');
+            $("#loginForm").addClass('hidden');
+            $("#linkId").removeClass('hidden');
+            console.log(jsonData['fortresses']);
+            sessionStorage.setItem('pId', jsonData['playerId']);
+            $("#options_playerId").val(jsonData['playerId']);
                     if(jsonData['playerExists'] && jsonData['handlerExists']){
                         //If player is in database and there is a handler, load existing games
                         $(".player").removeClass('hidden');
@@ -249,18 +251,12 @@ $(document).ready(function() {
                         $("#new_game_playerId").val(jsonData['playerId'] );
                         $("#newGame").removeClass('hidden');
                     }
-                    //var log = jsonData['log']; 
-                    //updatePlayer(data);
-                    //updateOpponent(jsonData);
-
-                }
-                else
-                {
-                    alert('Invalid Credentials!');
-                }
+            //var log = jsonData['log'];
+            //updateOpponent(jsonData);
        }, error: function(xhr, status, error)
        {
-           console.log(error);
+           console.error('Login request failed:', status, error);
+           $('#login_error').text('Unable to complete login. Please try again.').removeClass('hidden');
        }
    });
 

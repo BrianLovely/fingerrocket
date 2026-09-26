@@ -41,6 +41,7 @@
                     <input type="text"  id="pass" name="pass"  />
                 </div>
                     <button type="submit" id="submitLogin">Log In</button> 
+                    <div id="login_error" class="hidden" role="alert"></div>
                     <p class="account_switch">Don't have an account? <a href="#">Sign Up</a>
             </form>
         </div><!-- End login div -->
