@@ -926,6 +926,34 @@ function authPlayer($username, $pass){
         
     } //End function authPlayer
 
+function restorePlayerLogin(){
+        $tArray['playerExists'] = FALSE;
+        $tArray['handlerExists'] = FALSE;
+        $playerId = $_SESSION['playerId'] ?? NULL;
+        if($playerId === NULL){
+            return json_encode($tArray);
+        }
+
+        $statement = $this->mysqli->prepare('SELECT id FROM `players` WHERE id = ? LIMIT 1');
+        $statement->bind_param('s', $playerId);
+        $statement->execute();
+        $row = $statement->get_result()->fetch_assoc();
+        $statement->close();
+        if($row === NULL){
+            unset($_SESSION['playerId']);
+            return json_encode($tArray);
+        }
+
+        $tArray['playerExists'] = TRUE;
+        $tArray['playerId'] = $playerId;
+        $handlers = $this->findCombatHandlers($playerId);
+        if(!empty($handlers)){
+            $tArray['handlerExists'] = TRUE;
+            $tArray['fortresses'] = $this->packageGameChoices($handlers, $playerId);
+        }
+        return json_encode($tArray);
+    } //End function restorePlayerLogin
+
 
     public function isEmailUnique($email){
         $unique = true;
@@ -1016,6 +1044,11 @@ if (isset($_POST['fr_test'])) {
 //$_POST['username'] = "jeff";
 //$_POST['pass'] = "frpass";
 // Handle player login
+if(isset($_POST['restore_login'])){
+    echo $ch->restorePlayerLogin();
+    unset($_POST['restore_login']);
+}
+
 if(isset($_POST['username']) && isset($_POST['pass'])){
     $checkJson = $ch->authPlayer($_POST['username'], $_POST['pass']); 
     $checkArray = json_decode($checkJson, true);

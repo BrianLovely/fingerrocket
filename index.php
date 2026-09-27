@@ -93,7 +93,7 @@
         </div><!-- End start new game div -->
         <div id="workshop">
             <form name="workshop_form">
-                <button id="workshopToggle">Toggle Workshop</button>
+                <button type="button" id="workshopToggle">Toggle Workshop</button>
                 <div id="inner">
                     <h2>Your Workshop</h2>
                     <div id="rocket_parts">

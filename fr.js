@@ -14,8 +14,8 @@ $(document).ready(function() {
         $("#loginForm").removeClass("hidden").addClass("authenticated");
       });
 
-      $( "#workshopToggle" ).on( "mouseup", function() {
-        //alert("hey");
+            $( "#workshopToggle" ).on( "click", function(event) {
+                event.preventDefault();
         $("#inner").toggleClass("hidden");
     } );
 
@@ -207,6 +207,53 @@ $(document).ready(function() {
         });
     });
 
+    function renderLoggedInView(jsonData, clearGameState){
+        if (!jsonData || !jsonData.playerExists) {
+            return;
+        }
+        if (clearGameState) {
+            sessionStorage.removeItem('handlerId');
+            sessionStorage.removeItem('hId');
+        }
+
+        $('#login_error').text('').addClass('hidden');
+        $('#loginForm, #signupForm').addClass('hidden');
+        $('#linkId').removeClass('hidden');
+        sessionStorage.setItem('pId', jsonData.playerId);
+        sessionStorage.setItem('playerId', jsonData.playerId);
+        $('#options_playerId, #link_friend_form_playerId').val(jsonData.playerId);
+
+        if (jsonData.handlerExists) {
+            $('.player, .monitor, .gamelog, #gameOptions').removeClass('hidden');
+            $('.account_switch').addClass('hidden');
+
+            var fortresses = jsonData.fortresses;
+            if (!Array.isArray(fortresses)) {
+                fortresses = fortresses && typeof fortresses === 'object' ? [fortresses] : [];
+            }
+
+            var $fieldset = $('#options_fieldset');
+            $fieldset.children('.option').remove();
+            $.each(fortresses, function(index, fortress) {
+                var optionId = 'game-option-' + index;
+                var description = fortress.playerFortressName + ' with ' + fortress.playerFortressPoints +
+                    ' points, versus ' + fortress.opponentFortressName + ' with ' + fortress.opponentFortressPoints + ' points';
+                var $option = $('<div>', {class: 'option'});
+                var $radio = $('<input>', {
+                    type: 'radio',
+                    name: 'options_handlerId',
+                    id: optionId,
+                    value: fortress.handlerId
+                });
+                var $label = $('<label>').attr('for', optionId).text(description);
+                $fieldset.append($option.append($radio, $label));
+            });
+        } else {
+            $('#new_game_playerId').val(jsonData.playerId);
+            $('#newGame').removeClass('hidden');
+        }
+    }
+
     /* Log In */
     $('#fr_login').submit(function(e) {
         e.preventDefault();
@@ -222,41 +269,7 @@ $(document).ready(function() {
                     $('#login_error').text('Invalid email or password.').removeClass('hidden');
                     return;
                 }
-
-                $('#loginForm').addClass('hidden');
-                $('#linkId').removeClass('hidden');
-                sessionStorage.setItem('pId', jsonData.playerId);
-                $('#options_playerId').val(jsonData.playerId);
-
-                if (jsonData.handlerExists) {
-                    $('.player, .monitor, .gameLog, #gameOptions').removeClass('hidden');
-                    $('.account_switch').addClass('hidden');
-
-                    var fortresses = jsonData.fortresses;
-                    if (!Array.isArray(fortresses)) {
-                        fortresses = fortresses && typeof fortresses === 'object' ? [fortresses] : [];
-                    }
-
-                    var $fieldset = $('#options_fieldset');
-                    $fieldset.children('.option').remove();
-                    $.each(fortresses, function(index, fortress) {
-                        var optionId = 'game-option-' + index;
-                        var description = fortress.playerFortressName + ' with ' + fortress.playerFortressPoints +
-                            ' points, versus ' + fortress.opponentFortressName + ' with ' + fortress.opponentFortressPoints + ' points';
-                        var $option = $('<div>', {class: 'option'});
-                        var $radio = $('<input>', {
-                            type: 'radio',
-                            name: 'options_handlerId',
-                            id: optionId,
-                            value: fortress.handlerId
-                        });
-                        var $label = $('<label>').attr('for', optionId).text(description);
-                        $fieldset.append($option.append($radio, $label));
-                    });
-                } else {
-                    $('#new_game_playerId').val(jsonData.playerId);
-                    $('#newGame').removeClass('hidden');
-                }
+                renderLoggedInView(jsonData, true);
             },
             error: function(xhr, status, error) {
                 console.error('Login request failed:', status, error);
@@ -564,25 +577,40 @@ function traverse(jsonObj, jsonElements) {
      });
     
 
-      /* Call initializeGame on Page Load */
-      $(window).on("load", function(e) {
-        e.preventDefault();
-        /* Display interface while session persists */
+      /* Restore the logged-in view after a browser refresh. */
+      $(window).on('load', function() {
         var persistedPlayerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId') || sessionStorage.getItem('userid');
-        if(persistedPlayerId != null){
-            var userid = persistedPlayerId;
-            $("." + userid).addClass("authenticated");
-            $("#uid").text(userid);
-            $(".gamelog").addClass("authenticated");
-            $(".monitor").addClass("authenticated");
-            $(".login").addClass("hidden");
-            $("#hId").val(sessionStorage.getItem('hId'));
-            $("#loginForm").addClass('hidden');
-            $("#signupForm").addClass('hidden');
-            if (sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId')) {
-                startGamePolling();
-            }
+        var persistedHandlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
+        if (!persistedPlayerId) {
+            return;
         }
+
+        $('#loginForm, #signupForm').addClass('hidden');
+        $('#link_friend_form_playerId, #options_playerId').val(persistedPlayerId);
+        if (persistedHandlerId) {
+            sessionStorage.setItem('playerId', persistedPlayerId);
+            sessionStorage.setItem('handlerId', persistedHandlerId);
+            $('#linkId').removeClass('hidden');
+            $('#newGame, #gameOptions').addClass('hidden');
+            $('.player, .monitor, .gamelog').removeClass('hidden');
+            refreshGameState();
+            startGamePolling();
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            dataType: 'json',
+            data: {restore_login: 1},
+            success: function(jsonData) {
+                renderLoggedInView(jsonData, false);
+            },
+            error: function() {
+                sessionStorage.removeItem('playerId');
+                sessionStorage.removeItem('pId');
+            }
+        });
      });
 
 
