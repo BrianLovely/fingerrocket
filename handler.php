@@ -46,58 +46,72 @@ class combatHandler
 
     // Methods
 
+    /** Returns the handler ID from `$this->id`; uses no arguments. @return mixed The handler ID. */
     public function getId(){
         return $this->id;
     }
 
+    /** Stores `$id` in `$this->id`; uses the supplied ID. @param mixed $id Handler ID. @return void */
     public function setId($id){
         $this->id = $id;
     }
 
+    /** Returns the to-hit value from `$this->toHit`; uses no arguments. @return mixed The to-hit value. */
     public function getToHit(){
         return $this->toHit;
     }
 
+    /** Assigns the local `$toHit` value to `$this->toHit`; `$toHIt` is declared but not referenced. @param mixed $toHIt Declared hit value. @return void */
     public function setToHit($toHIt){
         $this->toHit = $toHit;
     }
 
+    /** Prints a browser alert using `$msg`; returns no value. @param string $msg Alert text. @return void */
     public function showAlert($msg){
         echo '<script>alert("' . $msg . '")</script>';
     }
 
+    /** Returns the first fortress from `$this->f1`; uses no arguments. @return mixed The first fortress. */
     public function getF1(){
         return $this->f1;
     }
 
+    /** Stores `$fortress` as `$this->f1`; uses the supplied fortress. @param mixed $fortress First fortress. @return void */
     public function setF1($fortress){
         $this->f1 = $fortress;
     }
 
+    /** Returns the second fortress from `$this->f2`; uses no arguments. @return mixed The second fortress. */
     public function getF2(){
         return $this->f2;
     }
 
+    /** Stores `$fortress` as `$this->f2`; uses the supplied fortress. @param mixed $fortress Second fortress. @return void */
     public function setF2($fortress){
         $this->f2 = $fortress;
     }
 
+    /** Returns the current player from `$this->player`; uses no arguments. @return mixed The current player. */
     public function getPlayer(){
         return $this->player;
     }
 
+    /** Stores `$player` in `$this->player`; uses the supplied player object. @param mixed $player Current player. @return void */
     public function setPlayer($player){
         $this->player = $player;
     }
 
+    /** Returns the opponent from `$this->opponent`; uses no arguments. @return mixed The opponent. */
     public function getOpponent(){
         return $this->opponent;
     }
 
+    /** Stores `$opponent` in `$this->opponent`; uses the supplied player object. @param mixed $opponent Opposing player. @return void */
     public function setOpponent($opponent){
         $this->opponent = $opponent;
     }
 
+    /** Opens the MySQL connection and creates a debris handler; uses no arguments or return value. @return void */
     public function __construct(){
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
         $this->mysqli = new mysqli('localhost', 'root', 'root', 'db_fingerrocket');
@@ -106,6 +120,7 @@ class combatHandler
         $this->dh = new debrisHandler();
     }
  
+    /** Loads a fortress row and builds a Fortress object; uses `$fid` and `$this->mysqli`. @param string $fid Fortress ID. @return Fortress Loaded fortress. */
     public function retrieveFortress($fid){
         $sql = 'SELECT * FROM fortress WHERE id="' . $fid . '"';
         $result = $this->mysqli->query($sql);
@@ -129,10 +144,12 @@ class combatHandler
 
     
 
+    /** Prints a fixed diagnostic message; uses no variables and returns no value. @return void */
     public function sanityCheck(){
         print "sanity check<br/>";
     }
 
+    /** Switches `$this->playerUp` between player and opponent; returns no value. @return void */
     public function togglePlayer(){
         if($this->playerUp == 'player'){
             $this->playerUp = 'opponent';
@@ -141,14 +158,17 @@ class combatHandler
         }
     }
 
+    /** Rolls an integer from 1 through `$dieType`; uses the die size. @param int $dieType Highest roll. @return int Random roll. */
     private function rollDie($dieType){
         return rand(1, $dieType);
     }
 
+    /** Rolls damage using `$dieType` via `rollDie`; returns the roll. @param int $dieType Highest damage roll. @return int Damage roll. */
     public function getDamage($dieType){
         return $this->rollDie($dieType);
     }
 
+    /** Encodes `$this->gameLog` as a JSON array string; uses the log entries. @return string Encoded game log. */
     public function convertLogToJson(){
         $temp = "[";
         $i = 1;
@@ -163,11 +183,13 @@ class combatHandler
         return $temp;
     }
 
+    /** Decodes `$json` into `$this->gameLog`; uses the JSON string and returns no value. @param string $json Encoded game log. @return void */
     public function convertJsonToLog($json){
         $this->gameLog = json_decode($json);
     }
 
 
+    /** Trims and persists `$this->gameLog` for `$this->id`; returns no value. @return void */
     public function storeGameLog(){
         if(count($this->gameLog) > 100){
             $temp = array_slice($this->gameLog, -50);
@@ -183,6 +205,7 @@ class combatHandler
         //echo "storeGameLog sanity: " . $this->id . "<br/>";
     }
 
+    /** Resolves `$this->playerUp` to a player ID using `$this->p1` and `$this->p2`; returns that ID. @return mixed Current turn player ID. */
     public function getTurnPlayerId(){
         if($this->playerUp === 'player'){
             return $this->p1;
@@ -193,6 +216,7 @@ class combatHandler
         return $this->playerUp;
     }
 
+    /** Checks the active game row to see whether `$pId` owns the turn in `$hId`; returns a boolean. @param string $pId Player ID. @param string $hId Game handler ID. @return bool Whether it is the player's turn. */
     public function isPlayerTurn($pId, $hId){
         $sql = "SELECT p1, p2, playerUp, gameStatus FROM gamehandler WHERE id = ?";
         $stmt = $this->mysqli->prepare($sql);
@@ -212,6 +236,7 @@ class combatHandler
         return $turnPlayerId === $pId;
     }
 
+    /** Persists `$playerId` as the next turn and updates `$this->playerUp`; returns no value. @param string $playerId Next player ID. @return void */
     public function storeTurn($playerId){
         $sql = "UPDATE gamehandler SET playerUp = ? WHERE id = ?";
         $stmt = $this->mysqli->prepare($sql);
@@ -221,6 +246,7 @@ class combatHandler
         $this->playerUp = $playerId;
     }
 
+    /** Randomly pairs strong and weak materials for rocket types 0 through 7; returns the rules array. @return array Generated affinity rules. */
     public function generateAffinityRules(){
         $rules = array();
         for($rocketType = 0; $rocketType <= 7; $rocketType++){
@@ -231,6 +257,7 @@ class combatHandler
         return $rules;
     }
 
+    /** Generates and persists affinity rules when `$this->affinityRules` is empty; returns the rules array. @return array Current affinity rules. */
     public function ensureAffinityRules(){
         if(empty($this->affinityRules)){
             $this->affinityRules = $this->generateAffinityRules();
@@ -243,6 +270,7 @@ class combatHandler
         return $this->affinityRules;
     }
 
+    /** Appends `$string` to both game-log arrays; returns no value. @param string $string Log entry. @return void */
     public function addToGameLog($string){
         array_push($this->gameLog, $string);
         array_push($this->gameLogBuffer, $string);
@@ -250,6 +278,7 @@ class combatHandler
 
 
 
+    /** Reads and prints the stored game log for handler ID 1; uses the database and returns no value. @return void */
     public function displayGameLog(){
         $sql = "SELECT `gameLog` FROM `gamehandler` WHERE id = 1";
         $result = $this->mysqli->query($sql);
@@ -265,6 +294,7 @@ class combatHandler
     }
 
 
+    /** Updates a fortress name in the database; uses `$id`, `$name`, and `$this->mysqli`. @param string $id Fortress ID. @param string $name New name. @return void */
     public function storeFortressName($id, $name){
         //echo $id . " " . $name . "<br/>";
         $sql = "UPDATE fortress SET 
@@ -276,6 +306,7 @@ class combatHandler
         //printf("Affected rows (UPDATE): %d\n", $this->mysqli->affected_rows);
     }
 
+    /** Persists the armory JSON for fortress `$id`; uses `$armory` and `$this->mysqli`. @param string $id Fortress ID. @param string $armory Encoded armory. @return void */
     public function storeArmory($id, $armory){
         $sql = "UPDATE fortress SET 
         armory=?
@@ -287,6 +318,7 @@ class combatHandler
         
     }
 
+    /** Persists cladding values for fortress `$id`; uses the supplied values and `$this->mysqli`. @param string $id Fortress ID. @param int $damageResistance Damage resistance. @param int $cladding Current cladding. @param int $storedCladding Stored cladding. @return void */
     public function storeCladding($id, $damageResistance, $cladding, $storedCladding){
        
         $sql = "UPDATE fortress SET 
@@ -303,6 +335,7 @@ class combatHandler
 
     //Players and fortresses are stored as IDs
     //IDs are always stored so that p1's fortress is f1, etc.
+    /** Inserts this handler's game state into the database; uses handler and player/fortress state. @return bool Whether the insert succeeded. */
     public function store(){
         $id = $this->id;
         $p1 = $this->p1;
@@ -333,6 +366,7 @@ class combatHandler
 
     
 
+    /** Inserts the handler's initial ID, score, fortresses, log, and turn into the database; returns no value. @return void */
     public function storeNewHandler(){
         $id = $this->getId();
         $basePoints = $this->basePoints;
@@ -353,6 +387,7 @@ class combatHandler
 
     
 
+    /** Persists fortress combat and inventory values; uses all supplied fields and `$this->mysqli`. @param string $id Fortress ID. @param string $armory Encoded armory. @param int $cladding Current cladding. @param int $storedCladding Stored cladding. @param int $damageResistance Damage resistance. @param int $points Score. @param int $flak Flak count. @return void */
     public function storeFortress($id, $armory, $cladding, $storedCladding, $damageResistance, $points, $flak){
         $hitResistance = $damageResistance;
         $sql = "UPDATE fortress SET 
@@ -373,6 +408,7 @@ class combatHandler
         
     }
 
+    /** Rolls fortress `$fortress` flak, updates scores/log state when it destroys a rocket, and reports survival. @param Fortress $fortress Defending fortress. @return bool Whether the rocket survives. */
     public function handleFlak($fortress){
         $flak = $fortress->getFlak();
         $roll = $this->rollDie(10);
@@ -393,6 +429,7 @@ class combatHandler
         }
     }
 
+    /** Logs a cluster attack and resolves five finger rockets; uses both fortress objects and handler combat state. @param Fortress $attacker Attacking fortress. @param Fortress $defender Defending fortress. @return void */
     public function handleCluster($attacker, $defender){
         $this->addToGameLog($attacker->getName() . " attacks " . $defender->getName() . " with a cluster rocket!");
         $clusterCount = 5;
@@ -408,6 +445,7 @@ class combatHandler
 
     }
 
+    /** Compares random attack and defense rolls using `$toHit`, `$hitRes`, `$cladding`, and `$this->hitBonus`; returns whether the attack hits. @param int $toHit Attack bonus. @param int $hitRes Hit resistance. @param int $cladding Cladding defense. @return bool Whether the attack hits. */
     public function isHit($toHit, $hitRes, $cladding){
         $roll = $this->rollDie(10);
         $res = $roll + $hitRes + $cladding;
@@ -424,6 +462,7 @@ class combatHandler
         }
     }
 
+    /** Applies rocket damage, affinity modifiers, score awards, and log entries using the current players and `$rocket`; returns no value. @param mixed $attacker Attacking fortress argument (current player fortress is used). @param mixed $defender Defending fortress argument (opponent fortress is used). @param mixed $rocket Rocket and its combat values. @return void */
     public function handleDamage($attacker, $defender, $rocket){
         //echo "handleDamage sanity<br/>";
         $attacker = $this->player->getFortress();
@@ -457,11 +496,13 @@ class combatHandler
         $this->addToGameLog($attacker->getName() . " is awarded " . $points . " points!");
     }
 
+    /** Delegates debris generation for `$type` and optional `$material` to `$this->dh`; returns generated debris. @param int $type Debris category. @param mixed $material Optional material filter. @return mixed Generated debris. */
     public function handleDebris($type, $material = NULL){
         $debris = $this->dh->handleDebris($type, $material);
         return $debris;
     }//End function handleDebris
 
+    /** Extracts the material name from `$fortress` cladding text; returns the final word. @param Fortress $fortress Fortress to inspect. @return string Material name. */
     public function getMaterial($fortress){
         $temp = $fortress->convertCladdingToString();
         $pieces = explode(" ", $temp);
@@ -469,6 +510,7 @@ class combatHandler
         return $material;
     }
 
+    /** Adds one recovery message per debris item to the game log; uses item names and fortress name. @param array $debris Recovered debris objects. @param Fortress $fortress Recovering fortress. @return void */
     public function logDebris($debris, $fortress){
         $name = $fortress->getName();
         $debrisName;
@@ -478,6 +520,7 @@ class combatHandler
         }
     }
 
+    /** Checks whether `$material` is strong or weak against `$rocketType` in `$this->affinityRules`; returns true, false, or null. @param int|string $rocketType Rocket type ID. @param int|string $material Material ID. @return bool|null Affinity result, or null when neutral. */
     public function handleAffinity($rocketType, $material){
         $rules = $this->affinityRules[(string)$rocketType] ?? array();
         if(isset($rules['strong']) && $material == $rules['strong']){
@@ -489,6 +532,7 @@ class combatHandler
         return NULL;
     }
 
+    /** Resolves an attack, turn transition, score, debris, winner, and log updates using `$rocket` and current handler state. @param mixed $rocket Rocket to resolve. @return bool|null False for rejected input; otherwise null after resolution. */
     public function handleCombat($rocket){
         //echo $this->getId() . " handling combat<br/>";
         /* Ensure lurking POST vars don't trigger unwanted log entries */
@@ -550,6 +594,7 @@ class combatHandler
 
     }//End function handleCombat
 
+    /** Ends the game when either fortress reaches `$this->targetScore`, persists the winner, and returns its ID or null. @param string $attackingPlayerId Attacker ID used to break a tied score. @return string|null Winner ID, or null while no winner exists. */
     public function declareWinnerIfTargetReached($attackingPlayerId){
         if($this->gameStatus !== 'active' || $this->player === NULL || $this->opponent === NULL){
             return NULL;
@@ -587,6 +632,7 @@ class combatHandler
     }
 
     // Pass in player id, get f1 & f2 assignments for player & opponent
+    /** Maps `$id` to player/opponent fortress slots using `$this->f1` and `$this->f2`; returns both slot labels. @param string $id Player ID. @return array Slot labels or null values. */
     public function getSlots($id){
         $slots['player'] = NULL;
         $slots['opponent'] = NULL;
@@ -602,6 +648,7 @@ class combatHandler
 
     
     //Package handler, players, and fortresses for passing to page
+    /** Packages handler, players, fortresses, turn, score, status, and selected log entries as JSON. @param bool $log Whether to package the full log instead of the buffer. @return string Encoded game state. */
     public function package($log = true){
         $array = [];
         $array['handlerId'] = $this->id;
@@ -639,6 +686,7 @@ class combatHandler
 
     
 //Select player data by ID 
+/** Fetches one player row by `$pId` using `$this->mysqli`; returns the associative database row. @param string $pId Player ID. @return array|null Player row, or null when absent. */
 function selectPlayerData($pId){
     $sql = 'SELECT * FROM `players` WHERE id="' . $pId  .'"';
     $result = $this->mysqli->query($sql);
@@ -648,6 +696,7 @@ function selectPlayerData($pId){
     return $row;
 }//End function selectPlayerData
 
+    /** Loads player `$pId` and its credentials/inventory into `$this->player`; returns no value. @param string $pId Player ID. @return void */
     public function selectPlayer($pId){
         $fData = $this->selectPlayerData($pId);
         $temp = new player();
@@ -662,6 +711,7 @@ function selectPlayerData($pId){
     }
     
 //Select combathandler by ID
+/** Loads handler row `$hId` into this object's game, player, fortress, and affinity state; returns no value. @param string $hId Handler ID. @return void */
 function selectCombatHandler($hId){
     $sql = 'SELECT * FROM `gamehandler` WHERE id="' . $hId  .'"';
     $result = $this->mysqli->query($sql);
@@ -683,6 +733,7 @@ function selectCombatHandler($hId){
 }//End function selectCombatHandler
 
 //Find combat handler by player ID
+/** Fetches active game rows involving `$pId`, including fortress names and scores; returns the rows as an array. @param string $pId Player ID. @return array Matching game rows. */
 public function findCombatHandlers($pId){
     $sql = 'SELECT gamehandler.*, f1.name AS f1Name, f1.points AS f1Points, f2.name AS f2Name, f2.points AS f2Points
             FROM `gamehandler`
@@ -704,6 +755,7 @@ public function findCombatHandlers($pId){
 }//End function findCombatHandlers
 
 //Confirm a handler exists
+/** Checks whether `$pId` belongs to a non-ended game; returns a boolean. @param string $pId Player ID. @return bool Whether a matching game exists. */
 public function handlerExists($pId){
     $statement = $this->mysqli->prepare('SELECT 1 FROM `gamehandler` WHERE (p1 = ? OR p2 = ?) AND gameStatus <> \'ended\' LIMIT 1');
     $statement->bind_param('ss', $pId, $pId);
@@ -716,6 +768,7 @@ public function handlerExists($pId){
 
 
     //Select friend by ID
+    /** Loads the player identified by `$fId` into `$this->opponent`; returns no value. @param string $fId Opponent player ID. @return void */
     public function selectFriend($fId){
         $fData = $this->selectPlayerData($fId);
         $temp = new player();
@@ -727,6 +780,7 @@ public function handlerExists($pId){
     }
 
 //Find empty handler slot for fortress
+/** Places `$fortress` in the first empty `$this->f1` or `$this->f2` slot; returns no value. @param mixed $fortress Fortress value to assign. @return void */
 public function putFortressInEmptySlot($fortress){
     if($this->f1 == NULL){
         $this->f1 = $fortress;
@@ -736,6 +790,7 @@ public function putFortressInEmptySlot($fortress){
 }//End function checkSlots
 
 //Check if all fortress slots are empty
+/** Checks whether either fortress slot is empty using `$this->f1` and `$this->f2`; returns the result. @return bool Whether at least one slot is empty. */
 public function allFortressSlotsEmpty(){
     $empty = false;
     if($this->f1 == NULL || $this->f2 == NULL){
@@ -744,6 +799,7 @@ public function allFortressSlotsEmpty(){
     return $empty;
 }
 
+/** Fetches the database row for fortress `$fId` using `$this->mysqli`; returns the row. @param string $fId Fortress ID. @return array|null Fortress row, or null when absent. */
 function selectFortress($fId){
     $sql = 'SELECT * FROM `fortress` WHERE id="' . $fId  .'"';
     $result = $this->mysqli->query($sql);
@@ -753,6 +809,7 @@ function selectFortress($fId){
 }//End function selectFortress
 
 //Find fortress in slots
+/** Finds the fortress matching `$fId` in `$this->f1` or `$this->f2`; returns it or null. @param string $fId Fortress ID. @return mixed Matching fortress, or null. */
 public function findFortressInSlots($fId){
     if($this->f1 !== NULL && $this->f1->getId() == $fId){
         return $this->f1;
@@ -763,6 +820,7 @@ public function findFortressInSlots($fId){
 }//End function findFortressInSlots
 
 //Slot fortress into empty slot
+/** Assigns `$fortress` to `$this->checkSlots`; returns no value. @param mixed $fortress Fortress to assign. @return void */
 public function slotFortress($fortress){
     $this->checkSlots = $fortress;
 }//End function slotFortress
@@ -770,6 +828,7 @@ public function slotFortress($fortress){
 
 
 
+/** Creates, names, and stores a new Fortress object; uses a generated ID and database state. @return Fortress The new fortress. */
 public function createFortress(){
         $temp = new Fortress();
         $tempId = uniqid();
@@ -781,6 +840,7 @@ public function createFortress(){
         return $temp;
 }//End function createFortress
 
+/** Builds a Fortress object from database row `$row`, including its armory; returns the object. @param array $row Fortress database row. @return Fortress Hydrated fortress. */
 public function setUpFortress($row){
     $tempFortress = new Fortress();
     $tempFortress->setId($row['id']);
@@ -798,6 +858,7 @@ public function setUpFortress($row){
 }//End function setUpPlayerFortress
 
 //After loading handler, load any fortresses
+/** Creates missing fortresses or loads existing ones for `$playerId`; returns the player's assigned slot or null. @param string $playerId Player ID. @return string|null Player fortress slot, or null when newly assigned. */
 public function setUpFortresses($playerId){
     $playerFortress = NULL;
 
@@ -833,12 +894,14 @@ public function setUpFortresses($playerId){
 }//End function setUpFortresses
 
 //Create player
+/** Creates a new player object with default state; uses no arguments. @return player New player object. */
 public function createPlayer(){
     $temp = new player();
     return $temp;
 }//End function createPlayer
 
 //Load DB data from sql row into existing handler player object
+/** Copies player identity and account fields from `$row` into `$this->player`; returns no value. @param array $row Player database row. @return void */
 public function loadPlayer($row){
     $this->player->id = $row['id'];
     $this->player->username = $row['username'];
@@ -848,6 +911,7 @@ public function loadPlayer($row){
 
 //Player and opponent are stored as ids in p1 and p2
 //Fortress ids are always stored so P1's fortress is F1, etc.
+/** Loads a game between `$pId` and `$oId`, hydrates both players and fortresses, and returns whether a matching game was found. @param string $pId Player ID. @param string $oId Opponent ID. @return bool Whether game state was loaded. */
 public function findHandlerForBothPlayers($pId, $oId){
     //echo "find handlers sanity<br/>";
     $sql = 'SELECT * FROM `gamehandler` WHERE (p1="' . $pId . '" AND p2="' . $oId . '") OR (p1="' . $oId . '" AND p2="' . $pId . '")';
@@ -889,6 +953,7 @@ public function findHandlerForBothPlayers($pId, $oId){
     //Later handle what if there's no such handler
 } 
 
+/** Loads session-selected game state and checks that `$playerId` owns the active turn; defaults IDs from `$_SESSION`. @param string|null $playerId Optional player ID. @param string|null $handlerId Optional handler ID. @return bool Whether an active session game is available. */
 public function findActiveSessionGame($playerId = NULL, $handlerId = NULL){
     $playerId = $playerId ?? ($_SESSION['playerId'] ?? NULL);
     $handlerId = $handlerId ?? ($_SESSION['handlerId'] ?? NULL);
@@ -901,6 +966,7 @@ public function findActiveSessionGame($playerId = NULL, $handlerId = NULL){
 
 
 //Find fortress names in available handlers
+/** Formats matching game rows for `$pId`, orienting fortress names and scores from that player's perspective. @param array $assoc Game rows with joined fortress details. @param string $pId Player ID. @return array Formatted game choices. */
 public function packageGameChoices($assoc, $pId){
     $fArray = [];
     foreach($assoc as $val){
@@ -934,6 +1000,7 @@ public function packageGameChoices($assoc, $pId){
     return $fArray;
 }//End function packageGameChoices
 
+/** Loads game `$hId` for player `$pId` and packages it as JSON, or returns a JSON error. @param string $pId Player ID. @param string $hId Handler ID. @return string JSON game state or error. */
 public function loadGameFromOptions($pId, $hId){ 
     $this->selectCombatHandler($hId);
     if($pId !== $this->p1 && $pId !== $this->p2){
@@ -968,6 +1035,7 @@ public function loadGameFromOptions($pId, $hId){
 }//End function loadGameFromOptions
 
 //Check if player exists. Return Bool and if yes game choices
+/** Authenticates `$username` and `$pass`, sets the player session, and returns player/game choices as JSON. @param string $username Login name. @param string $pass Password. @return string JSON authentication and game-choice data. */
 function authPlayer($username, $pass){
         $tArray['playerExists'] = FALSE;
         $tArray['handlerExists'] = FALSE;
@@ -996,6 +1064,7 @@ function authPlayer($username, $pass){
         
     } //End function authPlayer
 
+/** Restores the player session from `$_SESSION`, verifies the player, and returns available game choices as JSON. @return string JSON login-restoration data. */
 function restorePlayerLogin(){
         $tArray['playerExists'] = FALSE;
         $tArray['handlerExists'] = FALSE;
@@ -1025,6 +1094,7 @@ function restorePlayerLogin(){
     } //End function restorePlayerLogin
 
 
+    /** Checks the players table for `$email` used as a username; returns whether it is unique. @param string $email Email/username to check. @return bool Whether the value is unused. */
     public function isEmailUnique($email){
         $unique = true;
         $sql = 'SELECT * FROM `players` WHERE username="' . $email .'"';
@@ -1035,6 +1105,7 @@ function restorePlayerLogin(){
         return $unique;
     }
 
+    /** Validates `$email` with PHP's email filter; returns whether it is non-empty and valid. @param string $email Email address. @return bool Whether the email is valid. */
     public function validateEmail($email){
         $valid = false;
         if (filter_var($email, FILTER_VALIDATE_EMAIL) && !empty($email)) {
@@ -1043,6 +1114,7 @@ function restorePlayerLogin(){
         return $valid;
     }
 
+    /** Checks whether `$pass` is longer than seven characters; returns the result. @param string $pass Password to check. @return bool Whether the password meets the length rule. */
     public function validatePass($pass){
         $valid = false;
         if(strlen($pass) > 7 ){
