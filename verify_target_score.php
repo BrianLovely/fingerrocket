@@ -9,6 +9,7 @@ $ids = array(
     'handler' => uniqid()
 );
 
+// Reads the gamehandler row for `$gameId` using `$db`; returns the row or throws when absent.
 function readSimulationGame(mysqli $db, string $gameId): array {
     $statement = $db->prepare('SELECT * FROM gamehandler WHERE id = ?');
     $statement->bind_param('s', $gameId);
@@ -21,6 +22,7 @@ function readSimulationGame(mysqli $db, string $gameId): array {
     return $game;
 }
 
+// Simulates turns for `$gameId` using `$db` until completion or `$maxAttacks`; returns attack count and final game row.
 function simulateUntilWinner(mysqli $db, string $gameId, int $maxAttacks): array {
     $attacks = 0;
     while ($attacks < $maxAttacks) {
@@ -97,7 +99,10 @@ try {
         'attacks' => $firstPhase['attacks'],
         'winner_id' => $firstGame['winnerId'],
         'status' => $firstGame['gameStatus'],
-        'winner_log_recorded' => count(array_filter($firstLog, function($entry){ return strpos($entry, 'wins!') !== false; })) > 0
+        'winner_log_recorded' => count(array_filter($firstLog,
+            // Checks each log `$entry` for the win marker; returns whether it contains `wins!`.
+            function($entry){ return strpos($entry, 'wins!') !== false; }
+        )) > 0
     );
     if ($firstGame['gameStatus'] !== 'won' || empty($firstGame['winnerId'])) {
         throw new RuntimeException('First target did not produce a winner.');
@@ -132,7 +137,10 @@ try {
         'attacks' => $secondPhase['attacks'],
         'winner_id' => $secondGame['winnerId'],
         'status' => $secondGame['gameStatus'],
-        'winner_log_recorded' => count(array_filter($secondLog, function($entry){ return strpos($entry, 'wins!') !== false; })) > 0
+        'winner_log_recorded' => count(array_filter($secondLog,
+            // Checks each log `$entry` for the win marker; returns whether it contains `wins!`.
+            function($entry){ return strpos($entry, 'wins!') !== false; }
+        )) > 0
     );
     if ($secondGame['gameStatus'] !== 'won' || empty($secondGame['winnerId'])) {
         throw new RuntimeException('Second target did not produce a winner.');

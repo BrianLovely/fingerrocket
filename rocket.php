@@ -14,6 +14,7 @@ class FingerRocket
 
     // Methods
 
+    // Copies each `$property`/`$argument` pair from `$arguments` onto this rocket; returns nothing.
     public function __construct(array $arguments = array()) {
         
         if (!empty($arguments)) {
@@ -26,34 +27,42 @@ class FingerRocket
     }
 
 
+    // Returns `$this->name`; uses no arguments.
     public function getName(){
         return $this->name;
     }
 
+    // Returns `$this->id`; uses no arguments.
     public function getId(){
         return $this->id;
     }
 
+    // Returns `$this->typeId`; uses no arguments.
     public function getTypeId(){
         return $this->typeId;
     }
 
+    // Returns `$this->toHit`; uses no arguments.
     public function getToHit(){
         return $this->toHit;
     }
 
+    // Returns `$this->criticalChance`; uses no arguments.
     public function getcriticalChance(){
         return $this->criticalChance;
     }
 
+    // Returns `$this->dieType`; uses no arguments.
     public function getDieType(){
         return $this->dieType;
     }
 
+    // Returns `$this->debrisChance`; uses no arguments.
     public function getDebrisChance(){
         return $this->debrisChance;
     }
 
+    // Returns `$this->debrisValue`; uses no arguments.
     public function getDebrisValue(){
         return $this->debrisValue;
     }

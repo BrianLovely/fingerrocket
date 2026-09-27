@@ -1,14 +1,17 @@
 <?php
 require __DIR__ . '/handler.php';
 
+// Builds a test inventory item using `$typeId` and optional `$material`; returns the item array.
 function item($typeId, $material = NULL){
     return array('id' => uniqid(), 'typeId' => $typeId, 'name' => 'test', 'material' => $material);
 }
 
+// Builds a test blueprint for `$module`; returns the blueprint array.
 function blueprint($module){
     return array('id' => uniqid(), 'typeId' => 32, 'name' => $module, 'module' => $module);
 }
 
+// Creates a test player with inventory `$items` and a new fortress; returns the player object.
 function createPlayer($items){
     $player = new player();
     $player->setId(uniqid());
@@ -19,6 +22,7 @@ function createPlayer($items){
     return $player;
 }
 
+// Creates `$count` test items using `$typeId` and optional `$material`; returns the item array.
 function repeatItems($typeId, $count, $material = NULL){
     $items = array();
     for($index = 0; $index < $count; $index++){

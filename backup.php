@@ -12,6 +12,7 @@
             throw new RuntimeException('mysqli error: ' . $mysqli->error);
         }
 
+// Encodes `$output` for the browser console and optionally wraps it in script tags; returns nothing.
 function console_log($output, $with_script_tags = true) {
     $js_code = 'console.log(' . json_encode($output, JSON_HEX_TAG) .
     ');';
@@ -34,6 +35,7 @@ class FingerRocket
 
     // Methods
 
+    // Copies each `$property`/`$argument` pair from `$arguments` onto this rocket; returns nothing.
     public function __construct(array $arguments = array()) {
         print "constructing finger rocket";
         if (!empty($arguments)) {
@@ -117,6 +119,7 @@ class Fortress
 
     // Methods
 
+    // Copies each `$property`/`$argument` pair from `$arguments` onto this fortress; returns nothing.
     public function __construct(array $arguments = array()) {
         
         if (!empty($arguments)) {
@@ -127,91 +130,115 @@ class Fortress
         }
         
     }
+    // Returns `$this->jsonArmory`; uses no arguments.
     public function getJsonArmory(){
         return $this->jsonArmory;
     }
 
+    // Replaces `$this->jsonArmory` with `$jsonArmory`; returns nothing.
     public function setJsonArmory($jsonArmory){
         $this->jsonArmory = $jsonArmory;
     }
 
+    // Returns `$this->flak`; uses no arguments.
     public function getFlak(){
         return $this->flak;
     }
 
+    // Stores `$flak` in `$this->flak`; returns nothing.
     public function setFlak($flak){
         $this->flak = $flak;
     }
 
+    // Returns `$this->armory`; uses no arguments.
     public function getArmory(){
         return $this->armory;
     }
 
+    // Stores `$armory` in `$this->armory`; returns nothing.
     public function setArmory($armory){
         $this->armory = $armory;
     }
 
+    // Returns `$this->damageResistance`; uses no arguments.
     public function getDamageResistance(){
         return $this->damageResistance;
     }
+    // Stores `$damageResistance` in `$this->damageResistance`; returns nothing.
     public function setDamageResistance($damageResistance){
         $this->damageResistance = $damageResistance;
     }
 
+    // Returns `$this->hitResistance`; uses no arguments.
     public function getHitResistance(){
         return $this->hitResistance;
     }
+    // Stores `$hitResistance` in `$this->hitResistance`; returns nothing.
     public function setHitResistance($hitResistance){
         $this->hitResistance = $hitResistance;
     }
 
+    // Returns `$this->points`; uses no arguments.
     public function getPoints(){
         return $this->points;
     }
+    // Stores `$points` in `$this->points`; returns nothing.
     public function setPoints($points){
         $this->points = $points;
     }
 
+    // Returns `$this->id`; uses no arguments.
     public function getId(){
         return $this->id;
     }
+    // Stores `$id` in `$this->id`; returns nothing.
     public function setId($id){
         $this->id = $id;
     }
 
+    // Returns `$this->cladding`; uses no arguments.
     public function getCladding(){
         return $this->cladding;
     }
+    // Stores `$cladding` in `$this->cladding`; returns nothing.
     public function setCladding($cladding){
         $this->cladding = $cladding;
     }
 
+    // Returns `$this->storedCladding`; uses no arguments.
     public function getStoredCladding(){
         return $this->storedCladding;
     }
+    // Stores `$storedCladding` in `$this->storedCladding`; returns nothing.
     public function setStoredCladding($storedCladding){
         $this->storedCladding = $storedCladding;
     }
 
+    // Returns `$this->name`; uses no arguments.
     public function getName(){
         return $this->name;
     }
+    // Stores `$name` in `$this->name`; returns nothing.
     public function setName($name){
         
         $this->name = $name;
     }
 
+    // Returns `$this->damage`; uses no arguments.
     public function getDamage(){
         return $this->damage;
     }
+    // Stores `$damage` in `$this->damage`; returns nothing.
     public function setDamage($damage){
         $this->damage = $damage;
     }
 
+    // Stores `$handler` in `$this->combatHandler`; returns nothing.
     public function setCombatHandler($handler){
         $this->combatHandler = $handler;
     }
 
+    // Prints the cladding name derived from `$cladding`, adjusting `$this->cladding` when below zero; returns nothing.
     public function convertCladdingToString($cladding){
         
         if($cladding < 10){
@@ -237,21 +264,25 @@ class Fortress
 
     }
 
+    // Subtracts `$damage` from `$this->cladding`; returns nothing.
     public function applyDamage($damage){
         $tempDamage = $this->cladding - $damage;
         $this->cladding = $tempDamage;
     }
 
+    // Adds `$points` to `$this->points`; returns nothing.
     public function addPoints($points){
         $tempPoints = $this->points + $points;
         $this->points = $tempPoints;
     }
 
+    // Subtracts `$points` from `$this->points`; returns nothing.
     public function removePoints($points){
         $tempPoints = $this->points - $points;
         $this->points = $tempPoints;
     }
 
+    // Renders each rocket in `$this->armory` as an HTML option; returns nothing.
     public function displayRockets(){
         foreach($this->armory as $key => $val){
             print '<option value="' . $val->id . '">' . $val->name . '</option>';
@@ -262,6 +293,7 @@ class Fortress
     
 
   
+    // Decodes `$armoryJson` into FingerRocket objects and appends them to `$this->armory`; returns nothing.
     public function stockArmory($armoryJson){
         $armoryArray = json_decode($armoryJson, true);
         $count = count($armoryArray);
@@ -275,6 +307,7 @@ class Fortress
     }
 
 
+    // Finds `$rocketId` in `$this->armory`; returns the matching rocket or `NULL`.
    public function getRocket($rocketId){
         $count = count($this->armory);
         foreach($this->armory as $key => $val){
@@ -285,18 +318,21 @@ class Fortress
         }
     }
 
+    // Finds `$rocketId` and sends the rocket with this fortress to `$combatHandler`; returns nothing.
     public function attack($rocketId){
         
         $rocket = $this->getRocket($rocketId);
         $combatHandler->handleCombat($this, $rocket);
     }
 
+    // Creates a Finger Rocket from `$armoryArray`, assigns a unique ID, and appends it to `$this->armory`; returns nothing.
     public function addFingerRocket($armoryArray){
         $myFingerRocket = new FingerRocket($armoryArray);
         $myFingerRocket->id = uniqid();
         $this->armory[] = $myFingerRocket;
     }
 
+    // Creates a uniquely identified Dart with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addDart(){
         $myDart = new Dart();
         $myDart->typeId = 1;
@@ -307,6 +343,7 @@ class Fortress
         $this->armory[] = $myDart;
     }
 
+    // Creates a uniquely identified Flechette with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addFlechette(){
         $myFlechette = new Dart();
         $myFlechette->typeId = 2;
@@ -317,6 +354,7 @@ class Fortress
         $this->armory[] = $myFlechette;
     }
 
+    // Creates a uniquely identified Bolt with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addBolt(){
         $myBolt = new Bolt();
         $myBolt->typeId = 3;
@@ -328,6 +366,7 @@ class Fortress
         $this->armory[] = $myBolt;
     }
 
+    // Creates a uniquely identified ICYMI with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addICYMI(){
         $myICYMI = new ICYMI();
         $myICYMI->typeId = 4;
@@ -339,6 +378,7 @@ class Fortress
         $this->armory[] = $myICYMI;
     }
 
+    // Creates a uniquely identified ICBM with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addICBM(){
         $myICBM = new ICBM();
         $myICBM->typeId = 5;
@@ -350,6 +390,7 @@ class Fortress
         $this->armory[] = $myICBM;
     }
 
+    // Creates a uniquely identified TCB with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addTCB(){
         $myTCB = new TCB();
         $myTCB->typeId = 6;
@@ -361,6 +402,7 @@ class Fortress
         $this->armory[] = $myTCB;
     }
 
+    // Creates a uniquely identified Can of Whoop Ass with its combat stats and appends it to `$this->armory`; returns nothing.
     public function addCanOfWhoopAss(){
         $myCOWA = new CanOfWhoopAss();
         $myCOWA->typeId = 7;
@@ -372,6 +414,7 @@ class Fortress
         $this->armory[] = $myCOWA;
     }
 
+    // Uses `$type` to upgrade cladding when `$this->points` cover the cost, then stores the result; returns nothing.
     public function updateCladding($type){
         
         $tempCost = 0;
@@ -448,6 +491,7 @@ $this->combatHandler->storeFortress($this->id);
 
   
 
+    // Uses `$type` to buy the matching rocket when affordable, updating `$this->armory` and `$this->points`; returns nothing.
     public function addToArmory($type){
         
         $tempCost = 0;
@@ -541,6 +585,7 @@ class combatHandler
 
     // Methods
 
+    // Opens the game database and loads fortress and game-log state; returns nothing.
     public function __construct(){
         error_reporting(0);
         mysqli_report(MYSQLI_REPORT_OFF);
@@ -556,14 +601,17 @@ class combatHandler
         }
     }
 
+    // Rolls a die with `$dieType` sides; returns an integer from 1 through `$dieType`.
     private function rollDie($dieType){
         return rand(1, $dieType);
     }
 
+    // Rolls damage using `$dieType` through `rollDie()`; returns the roll.
     public function getDamage($dieType){
         return $this->rollDie($dieType);
     }
 
+    // Encodes `$this->gameLog` and persists it for `$this->id`; returns nothing.
     public function storeGameLog(){
         $gameLog = json_encode($this->gameLog);
         
@@ -576,11 +624,13 @@ class combatHandler
         
     }
 
+    // Appends `$string` to `$this->gameLog` and persists the log; returns nothing.
     public function addToGameLog($string){
         $this->gameLog[] = $string;
         $this->storeGameLog();
     }
 
+    // Reads and prints the stored log for handler ID 1; returns nothing.
     public function displayGameLog(){
     
         $sql = "SELECT `gameLog` FROM `gamehandler` WHERE id = 1";
@@ -597,6 +647,7 @@ class combatHandler
         }
     }
 
+    // Encodes `$attacker`'s armory and updates its fortress row; returns nothing.
     public function updateArmory($attacker){
         $id = $attacker->id;
         $armory = json_encode($attacker->armory);
@@ -607,6 +658,7 @@ class combatHandler
         $stmt->execute();
     }
 
+    // Finds fortress `$fid` in `$this->players` and persists its fields; returns nothing.
     public function storeFortress($fid){
         
         $fortress;
@@ -655,6 +707,7 @@ class combatHandler
         
     }
 
+    // Finds fortress `$fid` in `$this->players` and persists its name; returns nothing.
     public function storeFortressName($fid){
         
         $fortress;
@@ -680,6 +733,7 @@ class combatHandler
         
     }
 
+    // Uses `$fortress` to update its hit resistance in the database; returns nothing.
     public function storeFortressHitRes($fortress){
         
         $id = $fortress->getId;
@@ -698,6 +752,7 @@ class combatHandler
         $stmt->execute();
     }
 
+    // Resolves `$rocket` combat for `$attacker`, updates fortress scores/damage, and stores the game log; returns nothing.
     public function handleCombat($attacker, $rocket){
         
         if($attacker->id == "f1"){

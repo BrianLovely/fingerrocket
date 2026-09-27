@@ -20,6 +20,7 @@ class combatHandler
 
     // Methods
 
+    // Connects to the game database, sets its charset, and loads fortress/game-log state; returns nothing.
     public function __construct(){
         
         
@@ -63,10 +64,12 @@ class combatHandler
         } 
     }
 
+    // Prints a fixed diagnostic message; returns nothing.
     public function sanityCheck(){
         print "sanity check<br/>";
     }
 
+    // Switches `$this->playerUp` between fortress labels; returns nothing.
     public function togglePlayer(){
         if($this->playerUp = 'f1'){
             $this->playerUp = 'f2';
@@ -75,14 +78,17 @@ class combatHandler
         }
     }
 
+    // Rolls a die with `$dieType` sides; returns an integer from 1 through `$dieType`.
     private function rollDie($dieType){
         return rand(1, $dieType);
     }
 
+    // Rolls damage using `$dieType` through `rollDie()`; returns the roll.
     public function getDamage($dieType){
         return $this->rollDie($dieType);
     }
 
+    // Encodes `$this->gameLog` as a JSON array string; returns that string.
     public function convertLogToJson(){
         $temp = "[";
         $i = 1;
@@ -98,6 +104,7 @@ class combatHandler
     }
 
 
+    // Trims and persists `$this->gameLog` for `$this->id`; returns nothing.
     public function storeGameLog(){
         if(count($this->gameLog) > 100){
             $temp = array_slice($this->gameLog, -1, 50);
@@ -114,14 +121,17 @@ class combatHandler
     }
 
 
+    // Returns `$this->toHit`; uses no arguments.
     public function getToHit(){
         return $this->toHit;
     }
 
+    // Attempts to assign `$toHit` to `$this->toHit`; accepts `$toHIt` but does not reference it, and returns nothing.
     public function setToHit($toHIt){
         $this->toHit = $toHit;
     }
 
+    // Appends `$string` to `$this->gameLog`; returns nothing.
     public function addToGameLog($string){
         $this->gameLog[] = $string;
         
@@ -129,6 +139,7 @@ class combatHandler
 
 
 
+    // Reads the game log for handler ID 1 and prints its entries in order; returns nothing.
     public function displayGameLog(){
         $sql = "SELECT `gameLog` FROM `gamehandler` WHERE id = 1";
         $result = $this->mysqli->query($sql);
@@ -144,6 +155,7 @@ class combatHandler
     }
 
 
+    // Updates the fortress row `$id` with `$name`; returns nothing.
     public function storeFortressName($id, $name){
         if($id == "f1"){
             $this->f1->setName($name);
@@ -158,6 +170,7 @@ class combatHandler
        
     }
 
+    // Updates the fortress row `$id` with `$armory`; returns nothing.
     public function storeArmory($id, $armory){
         
         $sql = "UPDATE fortress SET 
@@ -170,6 +183,7 @@ class combatHandler
         
     }
 
+    // Updates fortress `$id` with `$damageResistance`, `$cladding`, and `$storedCladding`; returns nothing.
     public function storeCladding($id, $damageResistance, $cladding, $storedCladding){
        
         $sql = "UPDATE fortress SET 
@@ -186,6 +200,7 @@ class combatHandler
 
     
 
+    // Updates fortress `$id` with armory, cladding, resistance, points, and flak values; returns nothing.
     public function storeFortress($id, $armory, $cladding, $storedCladding, $damageResistance, $points, $flak){
         $sql = "UPDATE fortress SET 
         armory=?,
@@ -204,6 +219,7 @@ class combatHandler
         
     }
 
+    // Rolls against `$fortress` flak, updates points/flak and game log, and returns whether the rocket survives.
     public function handleFlak($fortress){
         $flak = $fortress->getFlak();
         $roll = $this->rollDie(10);
@@ -225,6 +241,7 @@ class combatHandler
         }
     }
 
+    // Logs a cluster attack and resolves five Finger Rockets using `$attacker` and `$defender`; returns nothing.
     public function handleCluster($attacker, $defender){
         $this->addToGameLog($attacker->getName() . " attacks " . $defender->getName() . " with a cluster rocket!");
         $clusterCount = 5;
@@ -240,6 +257,7 @@ class combatHandler
 
     }
 
+    // Resolves `$rocket` combat between `$attacker` and the opposing fortress, updates scores/log/database; returns nothing or false for an invalid rocket ID.
     public function handleCombat($attacker, $rocket){
         /* Ensure lurking POST vars don't trigger unwanted log entries */
         if(strlen($rocket->id) < 2){
@@ -326,6 +344,7 @@ class combatHandler
 
     }
 
+    // Packages `$this->f1`, `$this->f2`, turn, and game log; returns the JSON string.
     public function package(){
         $array = [];
         $array['f1'] = $this->f1->package();

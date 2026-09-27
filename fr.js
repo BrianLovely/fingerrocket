@@ -1,3 +1,4 @@
+// Initializes game UI behavior using shared closure state and the page DOM; takes no arguments and returns nothing.
 $(document).ready(function() {
     var attackInFlight = false;
     var turnActionInFlight = false;
@@ -5,26 +6,31 @@ $(document).ready(function() {
     var currentGameStatus = 'active';
     var currentTurnPlayerId = null;
 
+    // Shows a generic AJAX error in the page; uses no arguments and returns nothing.
     $( document ).on( "ajaxError", function() {
         $( ".error" ).text( "Triggered ajaxError handler." );
       } );
 
-      $("#login a").on("mouseup", function(){
+    // Switches the login form to signup on mouseup; uses the event context and returns nothing.
+    $("#login a").on("mouseup", function(){
         $("#loginForm").removeClass("authenticated").addClass("hidden");
         $("#signupForm").removeClass("hidden").addClass("authenticated");
       });
 
-      $("#signupForm a").on("mouseup", function(){
+    // Switches the signup form to login on mouseup; uses the event context and returns nothing.
+    $("#signupForm a").on("mouseup", function(){
         $("#signupForm").removeClass("authenticated").addClass("hidden");
         $("#loginForm").removeClass("hidden").addClass("authenticated");
       });
 
+            // Toggles the workshop after preventing the default click using `$event`; returns nothing.
             $( "#workshopToggle" ).on( "click", function(event) {
                 event.preventDefault();
         $("#inner").toggleClass("hidden");
     } );
 
-      function setPlayerId(pId){
+    // Copies `$pId` into the player-ID form fields; returns nothing.
+    function setPlayerId(pId){
         $("#initPlayerId").val(pId);
         $("#nameChangePlayerId").val(pId);
         $("#flakPlayerId").val(pId);
@@ -34,7 +40,8 @@ $(document).ready(function() {
         
       }
 
-      function refreshActionControls(){
+    // Reads session IDs and turn/in-flight state to enable or disable action controls; returns nothing.
+    function refreshActionControls(){
         var playerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId');
         var canAct = currentGameStatus === 'active'
             && currentTurnPlayerId === playerId
@@ -44,14 +51,16 @@ $(document).ready(function() {
         $('.blueprint').prop('disabled', !canAct);
       }
 
-      function turnActionData(form){
+    // Serializes `$form` and appends session player/handler IDs; returns the URL-encoded request string.
+    function turnActionData(form){
         var fields = $(form).serializeArray();
         fields.push({name: 'action_playerId', value: sessionStorage.getItem('playerId') || sessionStorage.getItem('pId') || ''});
         fields.push({name: 'action_handlerId', value: sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId') || ''});
         return $.param(fields);
       }
 
-      function submitTurnAction(data, errorMessage, isSuccessful){
+    // Sends `$data` when the current player may act, uses `$errorMessage` and optional `$isSuccessful`, and updates the UI; returns nothing.
+    function submitTurnAction(data, errorMessage, isSuccessful){
         var playerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId');
         if(turnActionInFlight || attackInFlight || currentGameStatus !== 'active' || currentTurnPlayerId !== playerId){
             return;
@@ -66,6 +75,7 @@ $(document).ready(function() {
             url: 'handler.php',
             dataType: 'json',
             data: data,
+            // Validates `$response` with `$isSuccessful` and updates player/opponent state; returns nothing.
             success: function(response){
                 if(response.error){
                     actionFailed = true;
@@ -85,11 +95,13 @@ $(document).ready(function() {
                     $('#player_error').text(errorMessage);
                 }
             },
+            // Displays `$errorMessage` and logs `$status`/`$error` for failed `$xhr`; returns nothing.
             error: function(xhr, status, error){
                 actionFailed = true;
                 $('#player_error').text(errorMessage);
                 console.error('Turn action failed:', status, error);
             },
+            // Clears the in-flight state and resumes polling after the request; takes no arguments and returns nothing.
             complete: function(){
                 turnActionInFlight = false;
                 refreshActionControls();
@@ -103,6 +115,7 @@ $(document).ready(function() {
         });
       }
 
+        // Parses `$data` into player/game UI and updates logs according to `$replaceLog`; returns whether required state is present.
         function updatePlayer(data, replaceLog){
         /* Display fortress one values */
         console.log(data);
@@ -142,9 +155,11 @@ $(document).ready(function() {
         var selectedRocket = $('#player_rockets').val();
         $("#player_rockets").empty();
         $("#player_rockets").append("<option>Fire a rocket</option>");
+        // Renders each armory `$value` using its `$key`; returns nothing.
         $.each( playerArmory, function( key, value ) {
             $("#player_rockets").append("<option value='" + value["id"] + "'>" + value["name"] + "</option>");
         }); 
+        // Tests each option's `this.value` against `$selectedRocket`; returns a boolean for filtering.
         if($("#player_rockets option").filter(function(){ return this.value === selectedRocket; }).length){
             $("#player_rockets").val(selectedRocket);
         }
@@ -180,17 +195,20 @@ $(document).ready(function() {
         return true;
     }
 
+    // Renders rocket debris, cladding materials, blueprints, and crafted items from `$items`; returns nothing.
     function updateWorkshop(items){
         $("#rocket_parts, #cladding_parts, #raw_materials, #blueprints, #crafted_items").find("p, button.blueprint").remove();
         if (!Array.isArray(items)) {
             return;
         }
         if(items[0].length > 0){
+            // Renders each rocket-debris `$value` at `$key`; returns nothing.
             $.each( items[0], function( key, value ) {
                 $("#rocket_parts").append("<p>" + (value.name || value) + "</p>");
             });
         }
         if(items[1].length > 0){
+            // Renders each cladding-debris `$value` at `$key`, or its raw-material label; returns nothing.
             $.each( items[1], function( key, value ) {
                 if (Number(value.typeId) === 35) {
                     var material = (value.material || '').toLowerCase();
@@ -202,6 +220,7 @@ $(document).ready(function() {
             });
         }
         if(items[2].length > 0){
+            // Renders each blueprint `$value` at `$key` as a crafting button; returns nothing.
             $.each( items[2], function( key, value ) {
                 var blueprintId = value.id || '';
                 var blueprintName = value.module || value.name || value;
@@ -209,12 +228,14 @@ $(document).ready(function() {
             });
         }
         if(items[3] && items[3].length > 0){
+            // Renders each crafted-item `$value` at `$key`; returns nothing.
             $.each(items[3], function(key, value){
                 $("#crafted_items").append("<p>" + (value.name || value) + "</p>");
             });
         }
     }
 
+    // Parses `$data` and updates the opponent fortress fields when points are present; returns nothing.
     function updateOpponent(data){
         /* Display fortress two values */
         var opponentData = JSON.parse(data);
@@ -231,13 +252,16 @@ $(document).ready(function() {
     var knownLogLength = 0;
     var logInitialized = false;
 
+    // Prepends normalized text for each game-log value in `$entries`; returns nothing.
     function appendLogEntries(entries){
+        // Normalizes and renders each log `$value` at `$key`; returns nothing.
         $.each(entries, function(key, value){
             var logText = String(value).replace(/<br\s*\/?>/gi, ' ').replace(/\s+/g, ' ').trim();
             $('#gameLog').prepend($('<p>').text(logText));
         });
     }
 
+    // Updates rendered log entries from `$log`, replacing or appending according to `$replaceLog`; returns nothing.
     function updateLog(log, replaceLog){
         if (!Array.isArray(log)) {
             return;
@@ -270,12 +294,14 @@ $(document).ready(function() {
         }
     }
 
+    // Placeholder accepting `$data`; currently performs no work and returns nothing.
     function appendOption($data){
     }
 
     var gamePoll;
     var gamePollInFlight = false;
 
+    // Requests the current game state for session player/handler IDs unless a request/action is already active; returns nothing.
     function refreshGameState(){
         var playerId = sessionStorage.getItem('playerId');
         var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
@@ -288,6 +314,7 @@ $(document).ready(function() {
             type: 'POST',
             url: 'handler.php',
             data: {refresh_playerId: playerId, refresh_handlerId: handlerId},
+            // Applies response `$data` only when its revision is current; returns nothing.
             success: function(data){
                 if (attackInFlight || requestRevision !== gameStateRevision) {
                     return;
@@ -299,17 +326,20 @@ $(document).ready(function() {
                     $('#player_error').text(jsonData['error']);
                 }
             },
+            // Shows a retry message for the current poll revision; takes no arguments and returns nothing.
             error: function(){
                 if (requestRevision === gameStateRevision) {
                     $('#player_error').text('Unable to refresh game state. Retrying.');
                 }
             },
+            // Clears the polling in-flight flag; takes no arguments and returns nothing.
             complete: function(){
                 gamePollInFlight = false;
             }
         });
     }
 
+    // Replaces the game polling interval with a one-second refresh; returns nothing.
     function startGamePolling(){
         if (gamePoll) {
             clearInterval(gamePoll);
@@ -317,17 +347,21 @@ $(document).ready(function() {
         gamePoll = setInterval(refreshGameState, 1000);
     }
 
+    // Reads the clicked blueprint ID and submits a crafting turn action; uses the event context and returns nothing.
     $(document).on('click', '.blueprint', function(){
         var blueprintId = $(this).data('blueprint-id');
         submitTurnAction({
             craft_blueprint_id: blueprintId,
             action_playerId: sessionStorage.getItem('playerId') || sessionStorage.getItem('pId'),
             action_handlerId: sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId')
-        }, 'Blueprint crafting failed.', function(response){
+        }, 'Blueprint crafting failed.',
+        // Returns whether `$response` reports successful crafting.
+        function(response){
             return response.craft && response.craft.success;
         });
     });
 
+    // Renders login/game-choice UI from `$jsonData`, optionally clearing the selected game; returns nothing.
     function renderLoggedInView(jsonData, clearGameState){
         if (!jsonData || !jsonData.playerExists) {
             return;
@@ -357,6 +391,7 @@ $(document).ready(function() {
 
             var $fieldset = $('#options_fieldset');
             $fieldset.children('.option').remove();
+            // Builds one game-choice control from `$fortress` at `$index`; returns nothing.
             $.each(fortresses, function(index, fortress) {
                 var optionId = 'game-option-' + index;
                 var description = fortress.playerFortressName + ' with ' + fortress.playerFortressPoints +
@@ -380,6 +415,7 @@ $(document).ready(function() {
     }
 
     /* Log In */
+    // Prevents native submission and sends login form data; uses `$e` and returns nothing.
     $('#fr_login').submit(function(e) {
         e.preventDefault();
         $('#login_error').text('').addClass('hidden');
@@ -389,6 +425,7 @@ $(document).ready(function() {
             url: 'handler.php',
             dataType: 'json',
             data: $(this).serialize(),
+            // Renders the logged-in state from `$jsonData` or displays a login error; returns nothing.
             success: function(jsonData) {
                 if (!jsonData || !jsonData.playerExists) {
                     $('#login_error').text('Invalid email or password.').removeClass('hidden');
@@ -396,6 +433,7 @@ $(document).ready(function() {
                 }
                 renderLoggedInView(jsonData, true);
             },
+            // Logs `$status`/`$error` for failed `$xhr` and displays a login error; returns nothing.
             error: function(xhr, status, error) {
                 console.error('Login request failed:', status, error);
                 $('#login_error').text('Unable to complete login. Please try again.').removeClass('hidden');
@@ -404,12 +442,14 @@ $(document).ready(function() {
     });
     
 
-  $("#fr_signup").submit(function(e) {
+    // Prevents native signup submission and sends the form; uses `$e` and returns nothing.
+    $("#fr_signup").submit(function(e) {
         e.preventDefault();
         $.ajax({
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Parses signup response `$data` and updates validation/success UI; returns nothing.
             success: function(data)
             {
                 console.log(data);
@@ -435,7 +475,9 @@ $(document).ready(function() {
                     $("#signupForm").removeClass("authenticated").addClass("hidden");
                     $("#loginForm").removeClass("hidden").addClass("authenticated");
                 }
-            }, error: function(xhr, status, error)
+            },
+            // Logs signup request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
             {
                 console.log(error);
             }
@@ -443,6 +485,7 @@ $(document).ready(function() {
      });
 
      /* New Game Handler */
+    // Prevents native submission and sends new-game form data; uses `$e` and returns nothing.
     $('#new_game_form').submit(function(e) {
         e.preventDefault();
         console.log($(this).serialize());
@@ -450,6 +493,7 @@ $(document).ready(function() {
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Parses `$data` and switches to the game-link view on success; returns nothing.
             success: function(data)
             {
                console.log(data);
@@ -459,13 +503,16 @@ $(document).ready(function() {
                     $("#sendId").toggleClass('hidden');
                     $("#linkId").toggleClass('hidden');
                }
-            }, error: function(xhr, status, error)
+            },
+            // Logs new-game request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
                 {
                     console.log(error);
                 }
             });
      });
 
+    // Prevents native submission and requests a new target score; uses `$e` and returns nothing.
     $('#nextTargetForm').submit(function(e) {
         e.preventDefault();
         $('#targetScoreError').text('');
@@ -473,6 +520,7 @@ $(document).ready(function() {
             type: 'POST',
             url: 'handler.php',
             data: $(this).serialize(),
+            // Parses `$data`, updates both fortresses, and restarts polling or displays its error; returns nothing.
             success: function(data) {
                 var jsonData = JSON.parse(data);
                 if (jsonData.error) {
@@ -483,17 +531,20 @@ $(document).ready(function() {
                 updateOpponent(data);
                 startGamePolling();
             },
+            // Shows a target-update failure message; takes no arguments and returns nothing.
             error: function() {
                 $('#targetScoreError').text('Unable to update the target score. Please try again.');
             }
         });
     });
 
+    // Sends the end-game action on click; uses the event context and returns nothing.
     $('#endGameButton').on('click', function() {
         $.ajax({
             type: 'POST',
             url: 'handler.php',
             data: {end_game: 1, handlerId: $('#outcomeHandlerId').val()},
+            // Parses `$data`, updates game state, and clears the active handler on success; returns nothing.
             success: function(data) {
                 var jsonData = JSON.parse(data);
                 if (jsonData.error) {
@@ -509,12 +560,14 @@ $(document).ready(function() {
                     gamePoll = null;
                 }
             },
+            // Shows an end-game failure message; takes no arguments and returns nothing.
             error: function() {
                 $('#targetScoreError').text('Unable to end the game. Please try again.');
             }
         });
     });
 
+    // Clears the selected handler and requests the player's game list; uses the event context and returns nothing.
     $('#returnToGames').on('click', function() {
         sessionStorage.removeItem('handlerId');
         sessionStorage.removeItem('hId');
@@ -523,6 +576,7 @@ $(document).ready(function() {
             url: 'handler.php',
             dataType: 'json',
             data: {restore_login: 1},
+            // Renders the restored game choices from `$jsonData`; returns nothing.
             success: function(jsonData) {
                 renderLoggedInView(jsonData, false);
             }
@@ -530,6 +584,7 @@ $(document).ready(function() {
     });
 
      /* Attack Handler */
+    // Prevents native submission and sends an attack while the game is active; uses `$e` and returns nothing.
     $('#player_attackForm').submit(function(e) {
         e.preventDefault();
         if (attackInFlight || currentGameStatus !== 'active') {
@@ -545,6 +600,7 @@ $(document).ready(function() {
             url: 'handler.php',
             dataType: 'json',
             data: $(this).serialize(),
+            // Handles attack response `$jsonData` and updates both fortresses; returns nothing.
             success: function(jsonData) {
                 if (jsonData.error) {
                     attackFailed = true;
@@ -558,11 +614,13 @@ $(document).ready(function() {
                     attackFailed = true;
                 }
             },
+            // Reports a failed attack using `$xhr`, `$status`, and `$error`; returns nothing.
             error: function(xhr, status, error) {
                 attackFailed = true;
                 $('#player_error').text('Attack request failed. Refreshing game state.');
                 console.error('Attack request failed:', status, error);
             },
+            // Clears the attack in-flight state and resumes polling; takes no arguments and returns nothing.
             complete: function() {
                 attackInFlight = false;
                 refreshActionControls();
@@ -576,7 +634,8 @@ $(document).ready(function() {
         });
      });
 
-      function resetLoggedInView(){
+    // Stops polling, clears session IDs and resets login/game UI; uses shared state and returns nothing.
+    function resetLoggedInView(){
         if(gamePoll){
             clearInterval(gamePoll);
             gamePoll = null;
@@ -585,6 +644,7 @@ $(document).ready(function() {
         attackInFlight = false;
         gameStateRevision++;
         currentGameStatus = 'active';
+        // Removes each session-storage key in `$key`; returns nothing.
         ['playerId', 'pId', 'userid', 'handlerId', 'hId'].forEach(function(key){
             sessionStorage.removeItem(key);
         });
@@ -599,6 +659,7 @@ $(document).ready(function() {
         $('#gameLog').empty();
     }
 
+    // Sends the logout request on click; uses the event context and returns nothing.
     $('#logoutButton').on('click', function(){
         $('#logoutButton').prop('disabled', true);
         $('#logout_error').text('').addClass('hidden');
@@ -607,6 +668,7 @@ $(document).ready(function() {
             url: 'handler.php',
             dataType: 'json',
             data: {logout: 1},
+            // Resets the logged-in view when `$response` confirms logout; returns nothing.
             success: function(response){
                 if(!response || !response.success){
                     $('#logout_error').text('Logout failed. Please try again.').removeClass('hidden');
@@ -614,9 +676,11 @@ $(document).ready(function() {
                 }
                 resetLoggedInView();
             },
+            // Displays a logout failure; takes no arguments and returns nothing.
             error: function(){
                 $('#logout_error').text('Logout failed. Please try again.').removeClass('hidden');
             },
+            // Re-enables the logout button after the request; takes no arguments and returns nothing.
             complete: function(){
                 $('#logoutButton').prop('disabled', false);
             }
@@ -624,12 +688,14 @@ $(document).ready(function() {
     });
 
            /* Link Friend Id */
+        // Prevents native friend-link submission and sends the form; uses `$e` and returns nothing.
       $('#link_friend_form').submit(function(e) {
         e.preventDefault();
         $.ajax({
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Updates opponent display from response `$data`; returns nothing.
             success: function(data)
             {
                
@@ -639,7 +705,9 @@ $(document).ready(function() {
                 $(".monitor").addClass("authenticated");
                 $("#signupForm").addClass("hidden");
                 $("#hId").val(data['hId']); */
-            }, error: function(xhr, status, error)
+            },
+            // Logs link request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
             {
                 console.log(error);
             }
@@ -648,12 +716,14 @@ $(document).ready(function() {
      });
 
              /* Choose option */
+              // Prevents native game-choice submission and loads the selected game; uses `$e` and returns nothing.
       $('#game_options').submit(function(e) {
         e.preventDefault();
         $.ajax({
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Updates player/opponent state and starts polling from response `$data`; returns nothing.
             success: function(data)
             {
                     updatePlayer(data, true);
@@ -666,7 +736,9 @@ $(document).ready(function() {
                 $(".monitor").addClass("authenticated");
                 $("#signupForm").addClass("hidden");
                 $("#hId").val(data['hId']); */
-            }, error: function(xhr, status, error)
+            },
+            // Logs game-choice request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
             {
                 console.log(error);
             }
@@ -681,11 +753,13 @@ $(document).ready(function() {
 
 
       
-      function updateData(){
+    // Requests legacy fortress state and renders both fortresses and log entries; uses shared DOM/session state and returns nothing.
+    function updateData(){
         $.ajax({
           type: "POST",
           url: 'handler.php',
           data: $('#fr_fort').serialize(),
+          // Parses response `$data` and renders player, opponent, and log state; returns nothing.
           success: function(data)
           {
               var jsonData = JSON.parse(data);
@@ -713,6 +787,7 @@ $(document).ready(function() {
                       });*/
   
                       /* Display Game Log */
+                      // Appends each log `$value` at `$key`; returns nothing.
                       $.each( log, function( key, value ) {
                          $("#gameLog").append("<p>" + value + "</p>");
                       }); 
@@ -721,7 +796,9 @@ $(document).ready(function() {
                   {
                       alert('Invalid Credentials!');
                   }
-         }, error: function(xhr, status, error)
+         },
+         // Logs refresh failure using `$xhr`, `$status`, and `$error`; returns nothing.
+         error: function(xhr, status, error)
          {
              console.log(error);
          }
@@ -734,6 +811,7 @@ $(document).ready(function() {
 
 
 
+// Parses `$jsonString`, traverses its values, and logs the collected elements; returns nothing.
 function readJsonFile(jsonString) {
     jsonString = JSON.stringify(jsonString);
     let jsonObj = JSON.parse(jsonString);
@@ -742,9 +820,11 @@ function readJsonFile(jsonString) {
     console.log(jsonElements)
 }
 
+// Recursively visits `$jsonObj`, appends entries to `$jsonElements`, and returns the accumulated array.
 function traverse(jsonObj, jsonElements) {
     if (jsonObj !== null && typeof jsonObj == "object") {
        
+        // Visits each `[key, value]` pair, recursively adding nested values to `jsonElements`; returns nothing.
         Object.entries(jsonObj).forEach(([key, value]) => {
             
             if (typeof value == "object") {
@@ -766,11 +846,13 @@ function traverse(jsonObj, jsonElements) {
 }
 
       
-      function initializeGame(){
+    // Requests initial game state and renders fortress/log data; uses shared form state and returns nothing.
+    function initializeGame(){
       $.ajax({
         type: "POST",
         url: 'handler.php',
         data: $('#fr_fort').serialize(),
+        // Parses response `$data` and updates player/opponent/log UI; returns nothing.
         success: function(data)
         {
            
@@ -782,6 +864,7 @@ function traverse(jsonObj, jsonElements) {
                     updatePlayer(jsonData);
                     updateOpponent(jsonData);
                     // Display Game Log 
+                    // Appends each log `$value` at `$key`; returns nothing.
                     $.each( log, function( key, value ) {
                        $("#gameLog").append("<p>" + value + "</p>");
                     }); 
@@ -790,7 +873,9 @@ function traverse(jsonObj, jsonElements) {
                 {
                     alert('Invalid Credentials!');
                 }
-       }, error: function(xhr, status, error)
+    },
+    // Logs initialization failure using `$xhr`, `$status`, and `$error`; returns nothing.
+    error: function(xhr, status, error)
        {
            console.log(error);
        }
@@ -801,12 +886,14 @@ function traverse(jsonObj, jsonElements) {
 
 
           /* Initialize game on p */
+      // Prevents native fortress-form submission and requests game state; uses `$e` and returns nothing.
       $('#fr_fort').submit(function(e) {
         e.preventDefault();
         $.ajax({
         type: "POST",
         url: 'handler.php',
         data: $(this).serialize(),
+        // Updates player UI from response `$data`; returns nothing.
         success: function(data)
         {
            
@@ -822,7 +909,9 @@ function traverse(jsonObj, jsonElements) {
                 {
                     alert('Invalid Credentials!');
                 }
-       }, error: function(xhr, status, error)
+    },
+    // Logs fortress-form request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+    error: function(xhr, status, error)
        {
            console.log(error);
        }
@@ -832,6 +921,7 @@ function traverse(jsonObj, jsonElements) {
     
 
             /* Restore the logged-in view after a browser refresh. */
+            // Restores session-backed login/game UI and refreshes an active game; returns nothing.
             function restoreLoggedInView(){
         var persistedPlayerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId') || sessionStorage.getItem('userid');
         var persistedHandlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
@@ -857,9 +947,11 @@ function traverse(jsonObj, jsonElements) {
             url: 'handler.php',
             dataType: 'json',
             data: {restore_login: 1},
+            // Renders restored account/game data from `$jsonData`; returns nothing.
             success: function(jsonData) {
                 renderLoggedInView(jsonData, false);
             },
+            // Clears stale player IDs after a restore failure; takes no arguments and returns nothing.
             error: function() {
                 sessionStorage.removeItem('playerId');
                 sessionStorage.removeItem('pId');
@@ -875,6 +967,7 @@ function traverse(jsonObj, jsonElements) {
   
 
      /* Gun Shops */
+    // Prevents native submission and sends serialized gun-shop data as a turn action; uses `$e` and returns nothing.
      $('#player_gunForm').submit(function(e) {
         e.preventDefault();
         submitTurnAction(turnActionData(this), 'Rocket purchase failed.');
@@ -882,7 +975,8 @@ function traverse(jsonObj, jsonElements) {
 
   
 
-     function update(data){
+    // Parses `$data` into local player/opponent/log variables; currently performs no UI updates and returns nothing.
+    function update(data){
         var jsonData = JSON.parse(data);
         var playerData = JSON.parse(jsonData['player']);
         var playerArmory = JSON.parse(playerData['jsonArmory']);
@@ -896,7 +990,8 @@ function traverse(jsonObj, jsonElements) {
         /* Update opponent */
      }
 
-     function cleanResponse(response){
+    // Finds the first JSON object in `$response` and returns the substring starting before its opening brace, or nothing if absent.
+    function cleanResponse(response){
         
         var len = response.length;
         for(let x = 0; x < len; x++){
@@ -911,6 +1006,7 @@ function traverse(jsonObj, jsonElements) {
     }
 
      /* Cladding Shop */
+    // Prevents native submission and sends serialized cladding-shop data as a turn action; uses `$e` and returns nothing.
      $('#player_claddingForm').submit(function(e) {
         e.preventDefault();
         submitTurnAction(turnActionData(this), 'Cladding purchase failed.');
@@ -920,6 +1016,7 @@ function traverse(jsonObj, jsonElements) {
 
 
      /* Flak Shop */
+    // Prevents native submission and sends serialized flak-shop data as a turn action; uses `$e` and returns nothing.
      $('#player_flakForm').submit(function(e) {
         e.preventDefault();
           submitTurnAction(turnActionData(this), 'Flak purchase failed.');
@@ -935,12 +1032,14 @@ function traverse(jsonObj, jsonElements) {
 
      /* Link to Friend's Id */
 
+        // Prevents native friend-ID submission and sends the form data; uses `$e` and returns nothing.
       $('#friend_id').submit(function(e) {
         e.preventDefault();
         $.ajax({
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Parses response `$data` and updates player-facing fortress labels; returns nothing.
             success: function(data)
             {
                 
@@ -949,7 +1048,9 @@ function traverse(jsonObj, jsonElements) {
               
                 $('#player_heading').text(playerData['name']);
                 $('#player_shopName').text(playerData['name'] + ' Shop');
-            }, error: function(xhr, status, error)
+            },
+            // Logs friend-ID request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
             {
                 console.log(error);
             }
@@ -959,16 +1060,20 @@ function traverse(jsonObj, jsonElements) {
 
      /* Name Changes */
 
+    // Prevents native name-form submission and sends the change request; uses `$e` and returns nothing.
      $('#player_nameForm').submit(function(e) {
         e.preventDefault();
         $.ajax({
             type: "POST",
             url: 'handler.php',
             data: $(this).serialize(),
+            // Updates player UI from response `$data`; returns nothing.
             success: function(data)
             {
                 updatePlayer(data);
-            }, error: function(xhr, status, error)
+            },
+            // Logs name-change request failure using `$xhr`, `$status`, and `$error`; returns nothing.
+            error: function(xhr, status, error)
             {
                 console.log(error);
             }

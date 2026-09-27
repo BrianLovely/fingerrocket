@@ -14,6 +14,7 @@ class Cladding
 
     // Methods
 
+    // Copies each `$property`/`$argument` pair from `$arguments` onto this cladding; returns nothing.
     public function __construct(array $arguments = array()) {
         
         if (!empty($arguments)) {
@@ -25,39 +26,48 @@ class Cladding
         
     }
 
+    // Returns `$this->debrisChance`; uses no arguments.
     public function getDebrisChance(){
         return $this->debrisChance;
     }
 
+    // Returns `$this->debrisValue`; uses no arguments.
     public function getDebrisValue(){
         return $this->debrisValue;
     }
 
+    // Returns `$this->highDamage`; uses no arguments.
     private function getHighDamage(){
         return $this->highDamage;
     }
 
+    // Returns `$this->lowDamage`; uses no arguments.
     private function getLowDamage(){
         return $this->lowDamage;
 
     }
 
+    // Returns `$this->damageResistance`; uses no arguments.
     public function getDamageResistance(){
         return $this->damageResistance;
     }
 
+    // Stores `$dr` in `$this->damageResistance`; returns nothing.
     public function setDamageResistance($dr){
         $this->damageResistance = $dr;
     }
 
+    // Returns `$this->hitResistance`; uses no arguments.
     public function getHitResistance(){
         return $this->hitResistance;
     }
 
+    // Stores `$hr` in `$this->hitResistance`; returns nothing.
     public function setHitResistance($hr){
         $this->hitResistance = $hr;
     }
 
+    // Builds a damage-state prefix from `$this->damageResistance`, `$this->highDamage`, and `$this->lowDamage`, then appends `$this->name`; returns the display name.
     public function getName(){
         $modString = "";
         $lowHigh = $this->getHighDamage() - 3;
@@ -70,21 +80,16 @@ class Cladding
         $name = $modString . $this->name;
         return $name;
     }
-}
 
+// Uses `$damage` and the object's damage/hit resistance values to update damage state and determine destruction; returns a boolean.
     public function isDestroyed($damage){
-        $tempDR = $this->getDamageResistance - $damage;
-        $this->setDamageResistance = $tempDR;
-        $tempHR = $this->getHitResistance - $damage;
-        $this->setHitResistance = $tempHR;
-        if($this->getDamageResistance < $this->lowDamage){
-            return true;
-        } else {
-            return false;
-        }
-        
-
+        $tempDR = $this->getDamageResistance() - $damage;
+        $this->setDamageResistance($tempDR);
+        $tempHR = $this->getHitResistance() - $damage;
+        $this->setHitResistance($tempHR);
+        return $this->getDamageResistance() < $this->getLowDamage();
     }
+}
 
     
 

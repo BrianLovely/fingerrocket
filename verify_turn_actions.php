@@ -10,6 +10,7 @@ $ids = array(
 );
 $result = array();
 
+// POSTs `$data` to the local game handler, decodes its JSON response, and returns the response array or throws on invalid JSON.
 function postGameAction(array $data): array {
     $body = http_build_query($data);
     $context = stream_context_create(array('http' => array(
@@ -27,6 +28,7 @@ function postGameAction(array $data): array {
     return $decoded;
 }
 
+// Reads row `$id` from `$table` using `$db`; returns the row or throws when it is absent.
 function readTurnTestRow(mysqli $db, string $table, string $id): array {
     $statement = $db->prepare("SELECT * FROM `$table` WHERE id = ?");
     $statement->bind_param('s', $id);

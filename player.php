@@ -19,6 +19,7 @@ public $itemArray = array (
 //Methods
 
 
+// Adds each debris object in `$array` to `$this->itemArray`, then persists the player; returns nothing.
 public function processDebris($array){
     foreach($array as $k => $v){
         $this->addDebris($v);
@@ -26,6 +27,7 @@ public function processDebris($array){
     $this->store();
 }//End function processDebris
 
+// Uses `$debris->getType()` to append the object to the matching group in `$this->itemArray`; returns nothing.
 public function addDebris($debris){
     //Type determines which subarray debris is pushed to
     $subArray = $debris->getType();
@@ -34,6 +36,7 @@ public function addDebris($debris){
 
 
 
+// Searches `$this->itemArray` for `$id`, removes a matching debris object, and returns it or `false`.
 public function getDebrisById($id){
     $default = false;
     //Iterate through subarrays
@@ -50,6 +53,7 @@ public function getDebrisById($id){
     return $default;
 }
 
+// Searches the `$type` group in `$this->itemArray` for `$typeId`, removes a match, and returns it or `false`.
 public function getDebrisByTypes($type, $typeId){
     $default = false;
     foreach($this->itemArray[$type] as $k => $v){
@@ -62,6 +66,7 @@ public function getDebrisByTypes($type, $typeId){
     return $default;
 }
 
+// Removes debris matching `$typeId` from `$this->itemArray` until `$count` are found; returns the removed items or `false`.
 public function removeDebrisByTypeId($typeId, $count = 1){
     $default = false;
     $items = array();
@@ -81,6 +86,7 @@ public function removeDebrisByTypeId($typeId, $count = 1){
     return $default;
 }
 
+// Removes items matching `$typeId` and `$material` until `$count` are found; returns the removed items or `false`.
 public function removeMaterialsByTypeId($typeId, $material, $count = 1){
     $default = false;
     $items = array();
@@ -104,59 +110,73 @@ public function removeMaterialsByTypeId($typeId, $material, $count = 1){
 
 
 
+// Returns `$this->id`; uses no arguments.
 public function getId(){
     return $this->id;
 }
 
+// Stores `$id` in `$this->id`; returns nothing.
 public function setId($id){
     $this->id = $id;
 }
 
+// Assigns a generated unique value to `$this->id`; returns nothing.
 public function setUniqueId(){
     $this->id = uniqid();
 }
 
+// Returns `$this->hId`; uses no arguments.
 public function gethId(){
     return $this->hId;
 }
 
+// Stores `$hId` in `$this->hId`; returns nothing.
 public function sethId($hId){
     $this->hId = $hId;
 }
 
+// Returns `$this->username`; uses no arguments.
 public function getUserName(){
     return $this->username;
 }
 
+// Stores `$username` in `$this->username`; returns nothing.
 public function setUserName($username){
     $this->username = $username;
 }
 
+// Returns `$this->pass`; uses no arguments.
 public function getPass(){
     return $this->pass;
 }
 
+// Stores `$pass` in `$this->pass`; returns nothing.
 public function setPass($pass){
     $this->pass = $pass;
 }
 
+// Returns `$this->fId`; uses no arguments.
 public function getfId(){
     return $this->fId;
 }
 
+// Stores `$fId` in `$this->fId`; returns nothing.
 public function setfId($fId){
     $this->fId = $fId;
 }
 
+// Returns `$this->fortress`; uses no arguments.
 public function getFortress(){
     return $this->fortress;
 }
 
+// Stores `$fObject` in `$this->fortress`; returns nothing.
 public function setFortress($fObject){
     $this->fortress = $fObject;
 }
 
 
+// Copies each `$property`/`$argument` pair from `$arguments` onto this player; returns nothing.
 public function __construct(array $arguments = array()) {
         
     if (!empty($arguments)) {
@@ -168,10 +188,12 @@ public function __construct(array $arguments = array()) {
     }
 }
 
+// Blueprint lookup placeholder accepting `$bluePrintId`; currently returns nothing.
 public function readBlueprint($bluePrintId){
 
 }
 
+// Reads `$field` from array or object `$item`; returns its value or `NULL` when absent.
 private function inventoryValue($item, $field){
     if(is_array($item)){
         return $item[$field] ?? NULL;
@@ -179,6 +201,7 @@ private function inventoryValue($item, $field){
     return $item->{$field} ?? NULL;
 }
 
+// Checks `$this->itemArray` for every `$requirements` entry, optionally matching `$material`; returns whether all counts are met.
 private function hasInventoryRequirements($requirements, $material = NULL){
     foreach($requirements as $requirement){
         $count = 0;
@@ -197,6 +220,7 @@ private function hasInventoryRequirements($requirements, $material = NULL){
     return true;
 }
 
+// Removes matching `$requirements` entries from `$this->itemArray`, optionally restricting by `$material`; returns nothing.
 private function removeInventoryRequirements($requirements, $material = NULL){
     foreach($requirements as $requirement){
         $remaining = $requirement['count'];
@@ -214,6 +238,7 @@ private function removeInventoryRequirements($requirements, $material = NULL){
     }
 }
 
+// Finds a material in `$this->itemArray` that satisfies `$requirements`; returns the first matching material or `NULL`.
 private function findCraftMaterial($requirements){
     $materials = array();
     foreach($this->itemArray as $items){
@@ -232,6 +257,7 @@ private function findCraftMaterial($requirements){
     return NULL;
 }
 
+// Uses `$blueprintId`, inventory requirements, and `$this->fortress` to craft the blueprint result; returns a success/error array.
 public function craftBlueprint($blueprintId){
     $blueprintIndex = NULL;
     $blueprint = NULL;
@@ -337,12 +363,14 @@ public function craftBlueprint($blueprintId){
     return array('success' => true, 'crafted' => $module);
 }
 
+// Looks up `$material` in the supported material list; returns its index or `0` when unknown.
 private function materialNameToId($material){
     $materials = array('Wood', 'Vanadium', 'Iron', 'Titanium', 'Chromium', 'Steel', 'Tungsten', 'Mithril', 'Admantium');
     $id = array_search($material, $materials, true);
     return $id === false ? 0 : $id;
 }
 
+// Counts items with `$typeId` in `$this->itemArray`; returns whether the count reaches `$count`.
 public function hasItem($typeId, $count = 1){
     $success = false;
     $stock = 0;
@@ -359,6 +387,7 @@ public function hasItem($typeId, $count = 1){
     return $success;
 }
 
+// Counts items matching `$typeId` and `$material` in `$this->itemArray`; returns whether the count reaches `$count`.
 public function hasMaterials($typeId, $material, $count = 1){
     $success = false;
     $stock = 0;
@@ -376,6 +405,7 @@ public function hasMaterials($typeId, $material, $count = 1){
 }
 
 //Special create to handle cladding materials
+// Uses `$typeId`, `$material`, inventory checks, and `$this->itemArray` to consume parts and add a cladding module; returns nothing.
 public function construct($typeId, $material){
     switch($typeId){
         case 1003:
@@ -451,6 +481,7 @@ public function construct($typeId, $material){
     }
 
 }//End function construct
+// Uses `$typeId` and `$this->itemArray` to consume recipe debris and add the matching module or rocket; returns nothing.
 public function create($typeId){
     $success = false;
     switch($typeId){
@@ -629,6 +660,7 @@ public function create($typeId){
     }
 }
 
+// Packages `$this->id`, `$this->username`, `$this->pass`, and encoded `$this->itemArray`; returns the package array.
 public function package(){
     $temp = [];
     $temp['id'] = $this->getId();
@@ -638,6 +670,7 @@ public function package(){
     return $temp;
 }
 
+// Persists `$this->id`, `$this->username`, `$this->pass`, and encoded `$this->itemArray` to the players row; returns nothing.
 public function store(){
     error_reporting(0);
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -668,6 +701,7 @@ public function store(){
         $stmt->close();
 }//End function store
 
+// Inserts this player's `$this->id`, `$this->username`, and `$this->pass`; returns whether the insert succeeded.
 public function storeNew(){
     $success = false;
     error_reporting(0);

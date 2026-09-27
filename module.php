@@ -9,34 +9,42 @@ public $name; //Nose, Payload, Propulsion, Bulwark, Bastion, Buttress, Rampart
 public $isComplex = FALSE;
 public $typeId;
 
+// Stores `$id` in `$this->id`; returns nothing.
 public function setId($id){
     $this->id = $id;
 }
 
+// Returns `$this->id`; uses no arguments.
 public function getId(){
     return $this->id;
 }
 
+// Stores `$type` in `$this->type`; returns nothing.
 public function setType($type){
     $this->type = $type;
 }
 
+// Returns `$this->type`; uses no arguments.
 public function getType(){
     return $this->type;
 }
 
+// Stores `$recipe` in `$this->recipe`; returns nothing.
 public function setRecipe($recipe){
     $this->recipe = $recipe;
 }
 
+// Returns `$this->recipe`; uses no arguments.
 public function getRecipe(){
     return $this->recipe;
 }
 
+// Stores `$name` in `$this->name`; returns nothing.
 public function setName($name){
     $this->name = $name;
 }
 
+// Returns `$this->name`, prefixed with `$this->material` for material-based modules; uses no arguments.
 public function getName(){
     if($this->type == 1 && !empty($this->material)){
         return $this->material . " " . $this->name;
@@ -44,10 +52,12 @@ public function getName(){
     return $this->name;
 }
 
+// Stores `$material` in `$this->material`; returns nothing.
 public function setMaterial($material){
     $this->material = $material;
 }
 
+// Returns `$this->material`, or `NULL` when unset; uses no arguments.
 public function getMaterial(){
     return $this->material ?? NULL;
 }
@@ -55,6 +65,7 @@ public function getMaterial(){
 
 
 //Methods
+// Copies each `$property`/`$argument` pair from `$arguments` onto this module; returns nothing.
 public function __construct(array $arguments = array()) {
         
     if (!empty($arguments)) {
@@ -107,14 +118,17 @@ class Bulwark extends Module{
     public $recipe = '{"Plate":4,"Rivet":6,"Strut":3,"Brace":3,"Raw":3}';
     public $typeId = 1003;
 
+    // Stores `$material` in `$this->material`; returns nothing.
     public function setMaterial($material){
         $this->material = $material;
     }
 
+    // Returns `$this->material`; uses no arguments.
     public function getMaterial(){
         return $this->material;
     }
 
+    // Combines the material from `getMaterial()` with the name from `getName()`; returns the full display name.
     public function getFullName(){
         $material = $this->getMaterial();
         $temp = $this->getName();

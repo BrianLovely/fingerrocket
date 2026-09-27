@@ -9,6 +9,7 @@ $playerIds = ['681f762053cb6', '681f762053cb5'];
 $fortressIds = ['68436decad0dd', '684d7c5d869b7'];
 $rocketClasses = ['FingerRocket', 'Dart', 'Flechette', 'Bolt', 'ICYMI', 'ICBM', 'TCB', 'CanOfWhoopAss'];
 
+// Loads fortress `$fortressId`, appends 50 instances of each `$rocketClasses` entry to its armory, and persists it; returns nothing.
 function seedRockets(mysqli $db, string $fortressId, array $rocketClasses): void {
     $select = $db->prepare('SELECT armory FROM fortress WHERE id=?');
     $select->bind_param('s', $fortressId);
@@ -92,7 +93,11 @@ foreach ($playerIds as $playerId) {
         'cladding_debris' => count($items[1] ?? []),
         'blueprints' => count($items[2] ?? []),
         'crafted_items' => count($items[3] ?? []),
-        'blueprint_names' => array_values(array_map(function($item){ return $item['module'] ?? $item['name'] ?? 'unknown'; }, $items[2] ?? []))
+        'blueprint_names' => array_values(array_map(
+            // Reads each blueprint `$item` and returns its module/name, or `unknown` when neither is set.
+            function($item){ return $item['module'] ?? $item['name'] ?? 'unknown'; },
+            $items[2] ?? []
+        ))
     ];
 }
 

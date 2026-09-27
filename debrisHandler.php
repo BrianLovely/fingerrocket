@@ -3,6 +3,7 @@
 class debrisHandler{
 
 //Methods
+// Copies each `$property`/`$argument` pair from `$arguments` onto this handler; returns nothing.
 public function __construct(array $arguments = array()) {
         
     if (!empty($arguments)) {
@@ -14,10 +15,12 @@ public function __construct(array $arguments = array()) {
     }
 }
 
+// Rolls a die with `$dieType` sides; returns an integer from 1 through `$dieType`.
 private function rollDie($dieType){
     return rand(1, $dieType);
 }
 
+// Rolls for a debris piece count using `$this->rollDie()`; returns an integer from zero through three.
 public function howManyPieces(){
     $number = 0;
     $roll = $this->rollDie(100);
@@ -33,6 +36,7 @@ public function howManyPieces(){
     return $number;
 }
 
+// Randomly creates a rocket debris object, assigns it a unique ID, and returns that object.
 public function getRocketDebris(){
     $roll = $this->rollDie(100);
     if($roll <= 5){
@@ -80,6 +84,7 @@ public function getRocketDebris(){
     return $type;
 }//End function getRocketDebris
 
+// Rolls for blueprint debris using `$this->rollDie()`; returns whether a blueprint is generated.
 public function blueprintRoll(){
     $die = $this->rollDie(10);
     $isThere = FALSE;
@@ -90,6 +95,7 @@ public function blueprintRoll(){
 }
 
 //pass in fortress->convertCladdingToString()
+// Uses `$material` and a random roll to create cladding debris; returns the selected debris object.
 public function getCladdingDebris($material){
     $type;
     $roll = $this->rollDie(100);
@@ -113,6 +119,7 @@ public function getCladdingDebris($material){
     return $type;
 }//End function getCladdingDebris
 
+// Uses `$type`, optional `$material`, and debris/blueprint rolls to collect generated pieces; returns an array of debris objects.
 public function handleDebris($type, $material = NULL){
     $mat;
     if($material != NULL){
