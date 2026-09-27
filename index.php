@@ -104,6 +104,9 @@
                     <div id="cladding_parts">
                         <h3>Cladding Parts</h3>
                     </div>
+                    <div id="raw_materials">
+                        <h3>Raw Material</h3>
+                    </div>
                     <div id="blueprints">
                         <h3>Blueprints</h3>
                     </div>

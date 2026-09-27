@@ -109,7 +109,7 @@ $(document).ready(function() {
     }
 
     function updateWorkshop(items){
-        $("#rocket_parts, #cladding_parts, #blueprints, #crafted_items").find("p, button.blueprint").remove();
+        $("#rocket_parts, #cladding_parts, #raw_materials, #blueprints, #crafted_items").find("p, button.blueprint").remove();
         if (!Array.isArray(items)) {
             return;
         }
@@ -120,6 +120,12 @@ $(document).ready(function() {
         }
         if(items[1].length > 0){
             $.each( items[1], function( key, value ) {
+                if (Number(value.typeId) === 35) {
+                    var material = (value.material || '').toLowerCase();
+                    var label = 'Piece of raw' + (material ? ' ' + material : '');
+                    $('#raw_materials').append($('<p>').text(label));
+                    return;
+                }
                 $("#cladding_parts").append("<p>" + (value.name || value) + "</p>");
             });
         }
