@@ -83,6 +83,8 @@
                     <button type="submit">Link Friend's ID</button>
 
                 </form>
+                <button type="button" id="logoutButton">Log out</button>
+                <div id="logout_error" class="hidden" role="alert"></div>
             </div>
         </div><!-- End friend id div -->
         <div id="newGame" class="hidden">

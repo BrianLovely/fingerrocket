@@ -1,7 +1,9 @@
 $(document).ready(function() {
     var attackInFlight = false;
+    var turnActionInFlight = false;
     var gameStateRevision = 0;
     var currentGameStatus = 'active';
+    var currentTurnPlayerId = null;
 
     $( document ).on( "ajaxError", function() {
         $( ".error" ).text( "Triggered ajaxError handler." );
@@ -32,6 +34,75 @@ $(document).ready(function() {
         
       }
 
+      function refreshActionControls(){
+        var playerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId');
+        var canAct = currentGameStatus === 'active'
+            && currentTurnPlayerId === playerId
+            && !attackInFlight
+            && !turnActionInFlight;
+        $('#player_attack, #player_buy, #player_buy_cladding, #player_buy_flak').prop('disabled', !canAct);
+        $('.blueprint').prop('disabled', !canAct);
+      }
+
+      function turnActionData(form){
+        var fields = $(form).serializeArray();
+        fields.push({name: 'action_playerId', value: sessionStorage.getItem('playerId') || sessionStorage.getItem('pId') || ''});
+        fields.push({name: 'action_handlerId', value: sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId') || ''});
+        return $.param(fields);
+      }
+
+      function submitTurnAction(data, errorMessage, isSuccessful){
+        var playerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId');
+        if(turnActionInFlight || attackInFlight || currentGameStatus !== 'active' || currentTurnPlayerId !== playerId){
+            return;
+        }
+
+        turnActionInFlight = true;
+        gameStateRevision++;
+        refreshActionControls();
+        var actionFailed = false;
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            dataType: 'json',
+            data: data,
+            success: function(response){
+                if(response.error){
+                    actionFailed = true;
+                    $('#player_error').text(response.error);
+                    return;
+                }
+                if(isSuccessful && !isSuccessful(response)){
+                    actionFailed = true;
+                    $('#player_error').text(response.craft && response.craft.error || errorMessage);
+                    return;
+                }
+                var json = JSON.stringify(response);
+                if(updatePlayer(json, true)){
+                    updateOpponent(json);
+                } else {
+                    actionFailed = true;
+                    $('#player_error').text(errorMessage);
+                }
+            },
+            error: function(xhr, status, error){
+                actionFailed = true;
+                $('#player_error').text(errorMessage);
+                console.error('Turn action failed:', status, error);
+            },
+            complete: function(){
+                turnActionInFlight = false;
+                refreshActionControls();
+                if(currentGameStatus === 'active'){
+                    startGamePolling();
+                    if(actionFailed && !gamePollInFlight){
+                        refreshGameState();
+                    }
+                }
+            }
+        });
+      }
+
         function updatePlayer(data, replaceLog){
         /* Display fortress one values */
         console.log(data);
@@ -43,8 +114,8 @@ $(document).ready(function() {
             $('.player, .monitor, .gamelog').removeClass('hidden');
             var gameStatus = playerData['gameStatus'] || 'active';
             currentGameStatus = gameStatus;
-            var isPlayerTurn = playerData['playerUp'] === playerData['player']['id'];
-            $('#player_attack').prop('disabled', !isPlayerTurn || gameStatus !== 'active');
+            currentTurnPlayerId = playerData['playerUp'];
+            var isPlayerTurn = currentTurnPlayerId === playerData['player']['id'];
         if (!isPlayerTurn) {
             $('#player_error').text('Wait for the other player to take their turn.');
         } else {
@@ -60,6 +131,7 @@ $(document).ready(function() {
         console.log("items: " + items[1]);
         updateWorkshop(items);
         updateLog(log, replaceLog);
+        refreshActionControls();
        $('#link_friend_form_playerId').val(playerData['player']['id']);
         $('#player_points').val(playerData['f1']['points']);
         $('#targetScoreStatus').text('Target score: ' + playerData['targetScore']).removeClass('hidden');
@@ -161,7 +233,8 @@ $(document).ready(function() {
 
     function appendLogEntries(entries){
         $.each(entries, function(key, value){
-            $("#gameLog").append("<p>" + value + "</p>");
+            var logText = String(value).replace(/<br\s*\/?>/gi, ' ').replace(/\s+/g, ' ').trim();
+            $('#gameLog').prepend($('<p>').text(logText));
         });
     }
 
@@ -170,10 +243,8 @@ $(document).ready(function() {
             return;
         }
         if (replaceLog && !logInitialized) {
-            $("#gameLog").empty();
-            $.each(log.slice().reverse(), function(key, value){
-                $("#gameLog").append("<p>" + value + "</p>");
-            });
+            $('#gameLog').empty();
+            appendLogEntries(log.slice().reverse());
             knownLogLength = log.length;
             logInitialized = true;
             return;
@@ -208,7 +279,7 @@ $(document).ready(function() {
     function refreshGameState(){
         var playerId = sessionStorage.getItem('playerId');
         var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
-        if (!playerId || !handlerId || gamePollInFlight || attackInFlight || currentGameStatus !== 'active') {
+        if (!playerId || !handlerId || gamePollInFlight || attackInFlight || turnActionInFlight || currentGameStatus !== 'active') {
             return;
         }
         var requestRevision = gameStateRevision;
@@ -248,23 +319,12 @@ $(document).ready(function() {
 
     $(document).on('click', '.blueprint', function(){
         var blueprintId = $(this).data('blueprint-id');
-        $.ajax({
-            type: 'POST',
-            url: 'handler.php',
-            data: {craft_blueprint_id: blueprintId},
-            success: function(data){
-                var jsonData = JSON.parse(data);
-                if (!jsonData['craft'] || !jsonData['craft']['success']) {
-                    var craftError = jsonData['craft'] && jsonData['craft']['error'];
-                    $('#player_error').text(craftError || 'Blueprint crafting failed.');
-                    return;
-                }
-                updatePlayer(data, true);
-                updateOpponent(data);
-            },
-            error: function(){
-                $('#player_error').text('Blueprint crafting failed.');
-            }
+        submitTurnAction({
+            craft_blueprint_id: blueprintId,
+            action_playerId: sessionStorage.getItem('playerId') || sessionStorage.getItem('pId'),
+            action_handlerId: sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId')
+        }, 'Blueprint crafting failed.', function(response){
+            return response.craft && response.craft.success;
         });
     });
 
@@ -477,7 +537,7 @@ $(document).ready(function() {
         }
         attackInFlight = true;
         gameStateRevision++;
-        $('#player_attack').prop('disabled', true);
+        refreshActionControls();
         $('#player_error').text('Attack in progress...');
         var attackFailed = false;
         $.ajax({
@@ -505,6 +565,7 @@ $(document).ready(function() {
             },
             complete: function() {
                 attackInFlight = false;
+                refreshActionControls();
                 if (currentGameStatus === 'active') {
                     startGamePolling();
                     if (attackFailed && !gamePollInFlight) {
@@ -514,6 +575,53 @@ $(document).ready(function() {
             }
         });
      });
+
+      function resetLoggedInView(){
+        if(gamePoll){
+            clearInterval(gamePoll);
+            gamePoll = null;
+        }
+        gamePollInFlight = false;
+        attackInFlight = false;
+        gameStateRevision++;
+        currentGameStatus = 'active';
+        ['playerId', 'pId', 'userid', 'handlerId', 'hId'].forEach(function(key){
+            sessionStorage.removeItem(key);
+        });
+
+        $('#fr_login').trigger('reset');
+        $('#loginForm').removeClass('hidden');
+        $('#signupForm').addClass('hidden');
+        $('#login_error, #logout_error').text('').addClass('hidden');
+        $('#linkId, #newGame, #gameOptions, #sendId, #gameOutcome, #gameEnded, #targetScoreStatus').addClass('hidden');
+        $('.player, .monitor, .gamelog').addClass('hidden');
+        $('#options_fieldset .option').remove();
+        $('#gameLog').empty();
+    }
+
+    $('#logoutButton').on('click', function(){
+        $('#logoutButton').prop('disabled', true);
+        $('#logout_error').text('').addClass('hidden');
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            dataType: 'json',
+            data: {logout: 1},
+            success: function(response){
+                if(!response || !response.success){
+                    $('#logout_error').text('Logout failed. Please try again.').removeClass('hidden');
+                    return;
+                }
+                resetLoggedInView();
+            },
+            error: function(){
+                $('#logout_error').text('Logout failed. Please try again.').removeClass('hidden');
+            },
+            complete: function(){
+                $('#logoutButton').prop('disabled', false);
+            }
+        });
+    });
 
            /* Link Friend Id */
       $('#link_friend_form').submit(function(e) {
@@ -769,20 +877,7 @@ function traverse(jsonObj, jsonElements) {
      /* Gun Shops */
      $('#player_gunForm').submit(function(e) {
         e.preventDefault();
-        $.ajax({
-            type: "POST",
-            url: 'handler.php',
-            data: $(this).serialize(),
-            success: function(data)
-            {
-                updatePlayer(data);
-                updateOpponent(data);
-                
-            }, error: function(xhr, status, error)
-            {
-                console.log(error);
-            }
-            });
+        submitTurnAction(turnActionData(this), 'Rocket purchase failed.');
      });
 
   
@@ -818,20 +913,7 @@ function traverse(jsonObj, jsonElements) {
      /* Cladding Shop */
      $('#player_claddingForm').submit(function(e) {
         e.preventDefault();
-        $.ajax({
-            type: "POST",
-            url: 'handler.php',
-            data: $(this).serialize(),
-            success: function(data)
-            {
-                updatePlayer(data);
-                updateOpponent(data);
-                
-            }, error: function(xhr, status, error)
-            {
-                console.log(error);
-            }
-            });
+        submitTurnAction(turnActionData(this), 'Cladding purchase failed.');
 
      });
 
@@ -840,19 +922,7 @@ function traverse(jsonObj, jsonElements) {
      /* Flak Shop */
      $('#player_flakForm').submit(function(e) {
         e.preventDefault();
-        $.ajax({
-            type: "POST",
-            url: 'handler.php',
-            data: $(this).serialize(),
-            success: function(data)
-            {
-               updatePlayer(data);
-               updateOpponent(data);
-            }, error: function(xhr, status, error)
-            {
-                console.log(xhr);
-            }
-            });
+          submitTurnAction(turnActionData(this), 'Flak purchase failed.');
 
      });
 

@@ -1,5 +1,7 @@
 <?php
 
+ob_start();
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -216,6 +218,7 @@ class combatHandler
         $stmt->bind_param("ss", $playerId, $this->id);
         $stmt->execute();
         $stmt->close();
+        $this->playerUp = $playerId;
     }
 
     public function generateAffinityRules(){
@@ -886,12 +889,14 @@ public function findHandlerForBothPlayers($pId, $oId){
     //Later handle what if there's no such handler
 } 
 
-public function findActiveSessionGame(){
-    $playerId = $_SESSION['playerId'] ?? NULL;
-    $opponentId = $_SESSION['friendId'] ?? NULL;
-    return $playerId !== NULL && $opponentId !== NULL
-        && $this->findHandlerForBothPlayers($playerId, $opponentId)
-        && $this->gameStatus === 'active';
+public function findActiveSessionGame($playerId = NULL, $handlerId = NULL){
+    $playerId = $playerId ?? ($_SESSION['playerId'] ?? NULL);
+    $handlerId = $handlerId ?? ($_SESSION['handlerId'] ?? NULL);
+    if($playerId === NULL || $handlerId === NULL || !$this->isPlayerTurn($playerId, $handlerId)){
+        return false;
+    }
+    $gameState = json_decode($this->loadGameFromOptions($playerId, $handlerId), true);
+    return !isset($gameState['error']) && $this->gameStatus === 'active';
 }
 
 
@@ -1053,6 +1058,24 @@ function restorePlayerLogin(){
 $ch = new combatHandler();
 $ch->id = uniqid();
 
+if(isset($_POST['logout'])){
+    $_SESSION = array();
+    if(ini_get('session.use_cookies')){
+        $cookie = session_get_cookie_params();
+        setcookie(session_name(), '', array(
+            'expires' => time() - 42000,
+            'path' => $cookie['path'],
+            'domain' => $cookie['domain'],
+            'secure' => $cookie['secure'],
+            'httponly' => $cookie['httponly'],
+            'samesite' => $cookie['samesite'] ?? 'Lax'
+        ));
+    }
+    session_destroy();
+    header('Content-Type: application/json');
+    echo json_encode(array('success' => true));
+    exit;
+}
 
 /* 
 We'll reset that ID if the desired handler is stored in the DB.
@@ -1087,10 +1110,15 @@ if(isset($_POST['refresh_playerId']) && isset($_POST['refresh_handlerId'])){
 }//End game state refresh
 
 if(isset($_POST['craft_blueprint_id'])){
-    if(!$ch->findActiveSessionGame()){
-        echo json_encode(array('error' => 'This game is no longer active.'));
+    $actionPlayerId = $_POST['action_playerId'] ?? NULL;
+    $actionHandlerId = $_POST['action_handlerId'] ?? NULL;
+    if(!$ch->findActiveSessionGame($actionPlayerId, $actionHandlerId)){
+        echo json_encode(array('error' => 'It is not your turn, or this game is no longer active.'));
     } else {
         $craft = $ch->player->craftBlueprint($_POST['craft_blueprint_id']);
+        if(!empty($craft['success'])){
+            $ch->storeTurn($ch->opponent->getId());
+        }
         $response = json_decode($ch->package(), true);
         $response['craft'] = $craft;
         echo json_encode($response);
@@ -1259,10 +1287,13 @@ if(isset($_POST['end_game']) && isset($_POST['handlerId'])){
 //$_POST['player_gunShop'] = 4;
 //$_POST['player_quan'] = 2;
 if(isset($_POST['player_gunShop'])){
-    if(!$ch->findActiveSessionGame()){
-        echo json_encode(array('error' => 'This game is no longer active.'));
+    $actionPlayerId = $_POST['action_playerId'] ?? NULL;
+    $actionHandlerId = $_POST['action_handlerId'] ?? NULL;
+    if(!$ch->findActiveSessionGame($actionPlayerId, $actionHandlerId)){
+        echo json_encode(array('error' => 'It is not your turn, or this game is no longer active.'));
     } else {
         $ch->player->fortress->addToArmory($_POST['player_gunShop'], $_POST['player_quan']);
+        $ch->storeTurn($ch->opponent->getId());
         echo $ch->package(false);
     }
 
@@ -1273,11 +1304,14 @@ if(isset($_POST['player_gunShop'])){
 //$_POST['friendId'] = "681f762053cb5";
 //$_POST['player_claddingShop'] = 4;
  if(isset($_POST['player_claddingShop'])){
-    if(!$ch->findActiveSessionGame()){
-        echo json_encode(array('error' => 'This game is no longer active.'));
+    $actionPlayerId = $_POST['action_playerId'] ?? NULL;
+    $actionHandlerId = $_POST['action_handlerId'] ?? NULL;
+    if(!$ch->findActiveSessionGame($actionPlayerId, $actionHandlerId)){
+        echo json_encode(array('error' => 'It is not your turn, or this game is no longer active.'));
     } else {
         $ch->player->fortress->updateCladding($_POST['player_claddingShop']);
-        $ch->addToGameLog($ch->player->fortress->getName() . " is upgrading it's cladding to " . $ch->player->fortress->convertCladdingToString() . "<br/>");
+        $ch->addToGameLog($ch->player->fortress->getName() . " is upgrading it's cladding to " . $ch->player->fortress->convertCladdingToString());
+        $ch->storeTurn($ch->opponent->getId());
         $ch->storeGameLog();
         echo $ch->package();
     }
@@ -1288,10 +1322,13 @@ if(isset($_POST['player_gunShop'])){
 //$_POST['friendId'] = "681f762053cb5";
 //$_POST['player_flakShop'] = 4;
  if(isset($_POST['player_flakShop'])){
-    if(!$ch->findActiveSessionGame()){
-        echo json_encode(array('error' => 'This game is no longer active.'));
+    $actionPlayerId = $_POST['action_playerId'] ?? NULL;
+    $actionHandlerId = $_POST['action_handlerId'] ?? NULL;
+    if(!$ch->findActiveSessionGame($actionPlayerId, $actionHandlerId)){
+        echo json_encode(array('error' => 'It is not your turn, or this game is no longer active.'));
     } else {
         $ch->player->fortress->addFlak($_POST['player_flakShop']);
+        $ch->storeTurn($ch->opponent->getId());
         echo $ch->package(false);
     }
     unset($_POST['player_flakShop']);
