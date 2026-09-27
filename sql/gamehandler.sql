@@ -36,7 +36,10 @@ CREATE TABLE `gamehandler` (
   `f2` varchar(25) DEFAULT NULL,
   `gameLog` longtext NOT NULL,
   `playerUp` varchar(100) NOT NULL,
-  `affinities` longtext DEFAULT NULL
+  `affinities` longtext DEFAULT NULL,
+  `targetScore` int(11) NOT NULL DEFAULT 1000,
+  `winnerId` varchar(25) DEFAULT NULL,
+  `gameStatus` varchar(20) NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --

@@ -19,6 +19,9 @@ class combatHandler
     // Properties
     public $id = 1;
     public $basePoints = 5;
+    public $targetScore = 1000;
+    public $winnerId = NULL;
+    public $gameStatus = 'active';
     public $p1 = NULL;
     public $p2 = NULL;
     public $f1 = NULL;
@@ -189,13 +192,13 @@ class combatHandler
     }
 
     public function isPlayerTurn($pId, $hId){
-        $sql = "SELECT p1, p2, playerUp FROM gamehandler WHERE id = ?";
+        $sql = "SELECT p1, p2, playerUp, gameStatus FROM gamehandler WHERE id = ?";
         $stmt = $this->mysqli->prepare($sql);
         $stmt->bind_param("s", $hId);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        if($row === NULL){
+        if($row === NULL || $row['gameStatus'] !== 'active'){
             return false;
         }
         $turnPlayerId = $row['playerUp'];
@@ -314,10 +317,13 @@ class combatHandler
         }
         $basePoints = $this->basePoints;
         $playerUp = $this->playerUp;
-        $sql = "INSERT INTO gamehandler (id, p1, p2, f1, f2, basePoints, playerUp) VALUES ('" . $id . "','" . $p1 . "','" . $p2 . "','" . $f1 . "','" . $f2 . "','" . $basePoints . "','" . $playerUp . "')";
-        if ($this->mysqli->query($sql) === TRUE) {
-            $success = true;
-        } 
+        $targetScore = $this->targetScore;
+        $gameStatus = $this->gameStatus;
+        $sql = 'INSERT INTO gamehandler (id, p1, p2, f1, f2, basePoints, playerUp, targetScore, gameStatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        $statement = $this->mysqli->prepare($sql);
+        $statement->bind_param('sssssisis', $id, $p1, $p2, $f1, $f2, $basePoints, $playerUp, $targetScore, $gameStatus);
+        $success = $statement->execute();
+        $statement->close();
         return $success;
 
     }
@@ -390,7 +396,7 @@ class combatHandler
         $this->addToGameLog("The cluster rocket splits into " . $clusterCount . " finger rockets!");
         
         $this->storeGameLog();
-        while($clusterCount > 0){
+        while($clusterCount > 0 && $this->gameStatus === 'active'){
             $temp = new fingerRocket();
             $temp->id = uniqid();
             $this->handleCombat($temp);
@@ -483,7 +489,7 @@ class combatHandler
     public function handleCombat($rocket){
         //echo $this->getId() . " handling combat<br/>";
         /* Ensure lurking POST vars don't trigger unwanted log entries */
-        if ($rocket === NULL) {
+        if ($rocket === NULL || $this->gameStatus !== 'active') {
             return false;
         }
         if(strlen($rocket->id) < 2){
@@ -495,8 +501,10 @@ class combatHandler
         
         if($rocket->name == "Cluster Rocket"){
             $this->handleCluster($attacker, $defender);
-            $this->playerUp = $this->opponent->getId();
-            $this->storeTurn($this->playerUp);
+            if($this->gameStatus === 'active'){
+                $this->playerUp = $this->opponent->getId();
+                $this->storeTurn($this->playerUp);
+            }
             return;
         }
         $this->addToGameLog($attacker->getName() . " attacks " . $defender->getName() . " with a " . $rocket->name . "!");
@@ -530,14 +538,50 @@ class combatHandler
             }
         }   
         //echo "handleCombat sanity<br/>";
-        $this->storeGameLog();
         $this->player->fortress->store();
         $this->opponent->fortress->store();
         $this->playerUp = $this->opponent->getId();
         $this->storeTurn($this->playerUp);
-        
+        $this->declareWinnerIfTargetReached($this->player->getId());
+        $this->storeGameLog();
 
     }//End function handleCombat
+
+    public function declareWinnerIfTargetReached($attackingPlayerId){
+        if($this->gameStatus !== 'active' || $this->player === NULL || $this->opponent === NULL){
+            return NULL;
+        }
+
+        $playerPoints = $this->player->fortress->getPoints();
+        $opponentPoints = $this->opponent->fortress->getPoints();
+        $playerReachedTarget = $playerPoints >= $this->targetScore;
+        $opponentReachedTarget = $opponentPoints >= $this->targetScore;
+        if(!$playerReachedTarget && !$opponentReachedTarget){
+            return NULL;
+        }
+
+        if($playerReachedTarget && $opponentReachedTarget){
+            if($playerPoints === $opponentPoints){
+                $this->winnerId = $attackingPlayerId;
+            } else {
+                $this->winnerId = $playerPoints > $opponentPoints ? $this->player->getId() : $this->opponent->getId();
+            }
+        } else {
+            $this->winnerId = $playerReachedTarget ? $this->player->getId() : $this->opponent->getId();
+        }
+
+        $this->gameStatus = 'won';
+        $winnerName = $this->winnerId === $this->player->getId()
+            ? $this->player->fortress->getName()
+            : $this->opponent->fortress->getName();
+        $this->addToGameLog($winnerName . ' reached the target score of ' . $this->targetScore . ' and wins!');
+
+        $statement = $this->mysqli->prepare("UPDATE gamehandler SET winnerId = ?, gameStatus = 'won' WHERE id = ? AND gameStatus = 'active'");
+        $statement->bind_param('ss', $this->winnerId, $this->id);
+        $statement->execute();
+        $statement->close();
+        return $this->winnerId;
+    }
 
     // Pass in player id, get f1 & f2 assignments for player & opponent
     public function getSlots($id){
@@ -574,6 +618,9 @@ class combatHandler
             $array['opponent'] = $this->opponent->package();
         }
         $array['playerUp'] = $this->getTurnPlayerId();
+        $array['targetScore'] = $this->targetScore;
+        $array['winnerId'] = $this->winnerId;
+        $array['gameStatus'] = $this->gameStatus;
         if($this->gameLog != NULL && $log == true){
             
             $array['log'] = array_reverse($this->gameLog);
@@ -619,6 +666,9 @@ function selectCombatHandler($hId){
     mysqli_free_result($result);
     $this->id = $row['id'];
     $this->playerUp = $row['playerUp'];
+    $this->targetScore = (int)$row['targetScore'];
+    $this->winnerId = $row['winnerId'];
+    $this->gameStatus = $row['gameStatus'];
     $this->gameLog = json_decode($row['gameLog']);
     $this->affinityRules = !empty($row['affinities']) ? json_decode($row['affinities'], true) : array();
     $this->ensureAffinityRules();
@@ -635,7 +685,7 @@ public function findCombatHandlers($pId){
             FROM `gamehandler`
             LEFT JOIN `fortress` AS f1 ON gamehandler.f1 = f1.id
             LEFT JOIN `fortress` AS f2 ON gamehandler.f2 = f2.id
-            WHERE gamehandler.p1 = ? OR gamehandler.p2 = ?';
+            WHERE (gamehandler.p1 = ? OR gamehandler.p2 = ?) AND gamehandler.gameStatus <> \'ended\'';
     $statement = $this->mysqli->prepare($sql);
     $statement->bind_param('ss', $pId, $pId);
     $statement->execute();
@@ -652,14 +702,12 @@ public function findCombatHandlers($pId){
 
 //Confirm a handler exists
 public function handlerExists($pId){
-    $sql = 'SELECT * FROM `gamehandler` WHERE p1="' . $pId  .'" OR p2="' . $pId . '"';
-    $result = $this->mysqli->query($sql);
-    $hArray = [];
-    if(mysqli_num_rows($result) > 0){
-        return true;
-    }elseif(mysqli_num_rows($result) == 0){
-        return false;
-    }
+    $statement = $this->mysqli->prepare('SELECT 1 FROM `gamehandler` WHERE (p1 = ? OR p2 = ?) AND gameStatus <> \'ended\' LIMIT 1');
+    $statement->bind_param('ss', $pId, $pId);
+    $statement->execute();
+    $exists = $statement->get_result()->num_rows > 0;
+    $statement->close();
+    return $exists;
 }//End function handlerExists
 
 
@@ -809,6 +857,9 @@ public function findHandlerForBothPlayers($pId, $oId){
     $this->p1 = $row['p1'];
     $this->p2 = $row['p2'];
     $this->playerUp = $row['playerUp'];
+    $this->targetScore = (int)$row['targetScore'];
+    $this->winnerId = $row['winnerId'];
+    $this->gameStatus = $row['gameStatus'];
     $this->affinityRules = !empty($row['affinities']) ? json_decode($row['affinities'], true) : array();
     $this->ensureAffinityRules();
     $this->selectFriend($oId);
@@ -835,6 +886,14 @@ public function findHandlerForBothPlayers($pId, $oId){
     //Later handle what if there's no such handler
 } 
 
+public function findActiveSessionGame(){
+    $playerId = $_SESSION['playerId'] ?? NULL;
+    $opponentId = $_SESSION['friendId'] ?? NULL;
+    return $playerId !== NULL && $opponentId !== NULL
+        && $this->findHandlerForBothPlayers($playerId, $opponentId)
+        && $this->gameStatus === 'active';
+}
+
 
 //Find fortress names in available handlers
 public function packageGameChoices($assoc, $pId){
@@ -858,6 +917,9 @@ public function packageGameChoices($assoc, $pId){
             continue;
         }
         $tArray['handlerId'] = $val['id'];
+        $tArray['targetScore'] = (int)$val['targetScore'];
+        $tArray['winnerId'] = $val['winnerId'];
+        $tArray['gameStatus'] = $val['gameStatus'];
         $tArray['playerFortressName'] = $playerFortressName;
         $tArray['playerFortressPoints'] = $playerFortressPoints;
         $tArray['opponentFortressName'] = $opponentFortressName;
@@ -869,6 +931,9 @@ public function packageGameChoices($assoc, $pId){
 
 public function loadGameFromOptions($pId, $hId){ 
     $this->selectCombatHandler($hId);
+    if($pId !== $this->p1 && $pId !== $this->p2){
+        return json_encode(array('error' => 'You are not a player in this game.'));
+    }
     $this->selectPlayer($pId);
     $playerIsFirst = $this->p1 == $pId;
     $friendId = $playerIsFirst ? $this->p2 : $this->p1;
@@ -1022,11 +1087,14 @@ if(isset($_POST['refresh_playerId']) && isset($_POST['refresh_handlerId'])){
 }//End game state refresh
 
 if(isset($_POST['craft_blueprint_id'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $craft = $ch->player->craftBlueprint($_POST['craft_blueprint_id']);
-    $response = json_decode($ch->package(), true);
-    $response['craft'] = $craft;
-    echo json_encode($response);
+    if(!$ch->findActiveSessionGame()){
+        echo json_encode(array('error' => 'This game is no longer active.'));
+    } else {
+        $craft = $ch->player->craftBlueprint($_POST['craft_blueprint_id']);
+        $response = json_decode($ch->package(), true);
+        $response['craft'] = $craft;
+        echo json_encode($response);
+    }
     unset($_POST['craft_blueprint_id']);
 }//End blueprint crafting
 
@@ -1099,9 +1167,65 @@ if(isset($_POST['friendId'])){
 if(isset($_POST['new_game_playerId'])){
     $ch->selectPlayer($_POST['new_game_playerId']);
     $ch->p1 = $ch->player->getId();
-    $success = $ch->store();
-    $newGame['success'] = $success;
+    $targetScore = filter_var($_POST['new_game_targetScore'] ?? 1000, FILTER_VALIDATE_INT);
+    if($targetScore === false || $targetScore < 1 || $targetScore > 1000000000){
+        $newGame['success'] = false;
+        $newGame['error'] = 'Choose a target score between 1 and 1,000,000,000.';
+    } else {
+        $ch->targetScore = $targetScore;
+        $newGame['success'] = $ch->store();
+        $newGame['targetScore'] = $targetScore;
+    }
     echo json_encode($newGame);
+}
+
+if(isset($_POST['new_target_score']) && isset($_POST['handlerId'])){
+    $playerId = $_SESSION['playerId'] ?? NULL;
+    $loadedGame = $playerId !== NULL
+        ? json_decode($ch->loadGameFromOptions($playerId, $_POST['handlerId']), true)
+        : array('error' => 'Your session has expired. Log in again.');
+    $newTargetScore = filter_var($_POST['new_target_score'], FILTER_VALIDATE_INT);
+    if(isset($loadedGame['error'])){
+        echo json_encode($loadedGame);
+    } elseif($ch->gameStatus !== 'won'){
+        echo json_encode(array('error' => 'Only a completed game can continue with a new target.'));
+    } elseif($newTargetScore === false || $newTargetScore <= max($ch->player->fortress->getPoints(), $ch->opponent->fortress->getPoints()) || $newTargetScore > 1000000000){
+        echo json_encode(array('error' => 'The next target must be higher than both current scores and no more than 1,000,000,000.'));
+    } else {
+        $ch->targetScore = $newTargetScore;
+        $ch->winnerId = NULL;
+        $ch->gameStatus = 'active';
+        $ch->addToGameLog('The players set a new target score of ' . $newTargetScore . '.');
+        $statement = $ch->mysqli->prepare("UPDATE gamehandler SET targetScore = ?, winnerId = NULL, gameStatus = 'active' WHERE id = ? AND gameStatus = 'won'");
+        $statement->bind_param('is', $newTargetScore, $ch->id);
+        $statement->execute();
+        $statement->close();
+        $ch->storeGameLog();
+        echo $ch->package();
+    }
+    unset($_POST['new_target_score'], $_POST['handlerId']);
+}
+
+if(isset($_POST['end_game']) && isset($_POST['handlerId'])){
+    $playerId = $_SESSION['playerId'] ?? NULL;
+    $loadedGame = $playerId !== NULL
+        ? json_decode($ch->loadGameFromOptions($playerId, $_POST['handlerId']), true)
+        : array('error' => 'Your session has expired. Log in again.');
+    if(isset($loadedGame['error'])){
+        echo json_encode($loadedGame);
+    } elseif($ch->gameStatus !== 'won'){
+        echo json_encode(array('error' => 'Only a completed game can be ended.'));
+    } else {
+        $ch->gameStatus = 'ended';
+        $ch->addToGameLog('The players ended the game.');
+        $statement = $ch->mysqli->prepare("UPDATE gamehandler SET gameStatus = 'ended' WHERE id = ? AND gameStatus = 'won'");
+        $statement->bind_param('s', $ch->id);
+        $statement->execute();
+        $statement->close();
+        $ch->storeGameLog();
+        echo $ch->package();
+    }
+    unset($_POST['end_game'], $_POST['handlerId']);
 }
 
 //Attack!
@@ -1131,9 +1255,12 @@ if(isset($_POST['new_game_playerId'])){
 //$_POST['player_gunShop'] = 4;
 //$_POST['player_quan'] = 2;
 if(isset($_POST['player_gunShop'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $ch->player->fortress->addToArmory($_POST['player_gunShop'], $_POST['player_quan']);
-    echo $ch->package(false);
+    if(!$ch->findActiveSessionGame()){
+        echo json_encode(array('error' => 'This game is no longer active.'));
+    } else {
+        $ch->player->fortress->addToArmory($_POST['player_gunShop'], $_POST['player_quan']);
+        echo $ch->package(false);
+    }
 
     
  };
@@ -1142,12 +1269,14 @@ if(isset($_POST['player_gunShop'])){
 //$_POST['friendId'] = "681f762053cb5";
 //$_POST['player_claddingShop'] = 4;
  if(isset($_POST['player_claddingShop'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $ch->player->fortress->updateCladding($_POST['player_claddingShop']);
-    //echo "cladding shop sanity<br/>";
-    $ch->addToGameLog($ch->player->fortress->getName() . " is upgrading it's cladding to " . $ch->player->fortress->convertCladdingToString() . "<br/>");
-    $ch->storeGameLog();
-    echo $ch->package();
+    if(!$ch->findActiveSessionGame()){
+        echo json_encode(array('error' => 'This game is no longer active.'));
+    } else {
+        $ch->player->fortress->updateCladding($_POST['player_claddingShop']);
+        $ch->addToGameLog($ch->player->fortress->getName() . " is upgrading it's cladding to " . $ch->player->fortress->convertCladdingToString() . "<br/>");
+        $ch->storeGameLog();
+        echo $ch->package();
+    }
     unset($_POST['player_claddingShop']);
  };
 
@@ -1155,9 +1284,12 @@ if(isset($_POST['player_gunShop'])){
 //$_POST['friendId'] = "681f762053cb5";
 //$_POST['player_flakShop'] = 4;
  if(isset($_POST['player_flakShop'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $ch->player->fortress->addFlak($_POST['player_flakShop']);
-    echo $ch->package(false);
+    if(!$ch->findActiveSessionGame()){
+        echo json_encode(array('error' => 'This game is no longer active.'));
+    } else {
+        $ch->player->fortress->addFlak($_POST['player_flakShop']);
+        echo $ch->package(false);
+    }
     unset($_POST['player_flakShop']);
  };
 
@@ -1166,10 +1298,13 @@ if(isset($_POST['player_gunShop'])){
 //$_POST['friendId'] = "681f762053cb5";
 //$_POST['player_nameChange'] = "Remorseless Bastion of Negativity";
  if(isset($_POST['player_nameChange'])){
-    $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-    $id = $ch->player->fortress->getId();
-    $ch->storeFortressName($id, $_POST['player_nameChange']);
-    echo $ch->package(false);
+    if(!$ch->findActiveSessionGame()){
+        echo json_encode(array('error' => 'This game is no longer active.'));
+    } else {
+        $id = $ch->player->fortress->getId();
+        $ch->storeFortressName($id, $_POST['player_nameChange']);
+        echo $ch->package(false);
+    }
  }
 
 

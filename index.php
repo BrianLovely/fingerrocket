@@ -87,7 +87,9 @@
         </div><!-- End friend id div -->
         <div id="newGame" class="hidden">
             <form id="new_game_form" method="post">
-                <imput type="hidden" id="new_game_playerId" name="new_game_playerId"/>
+                <input type="hidden" id="new_game_playerId" name="new_game_playerId"/>
+                <label for="new_game_targetScore">Target score</label>
+                <input type="number" id="new_game_targetScore" name="new_game_targetScore" min="1" max="1000000000" step="1" value="1000" required />
                 <button type="submit">Start New Game</button>
             </form>
         </div><!-- End start new game div -->
@@ -114,7 +116,8 @@
 
     </div>
    
-     <div id="error"></div>
+    <div id="error"></div>
+    <p id="targetScoreStatus" class="hidden" role="status"></p>
 <div class="container">
       <div class="column player player hidden">
             <div class="fortress" id = "player">
@@ -266,6 +269,21 @@
         
     
     </div>
+    <section id="gameOutcome" class="hidden" role="status">
+        <h2 id="winnerAnnouncement"></h2>
+        <form id="nextTargetForm">
+            <input type="hidden" id="outcomeHandlerId" name="handlerId" />
+            <label for="next_target_score">Next target score</label>
+            <input type="number" id="next_target_score" name="new_target_score" min="1" max="1000000000" step="1" required />
+            <button type="submit">Continue with new target</button>
+            <button type="button" id="endGameButton">End game</button>
+            <div id="targetScoreError" role="alert"></div>
+        </form>
+    </section>
+    <section id="gameEnded" class="hidden" role="status">
+        <p>This game has ended.</p>
+        <button type="button" id="returnToGames">Return to games</button>
+    </section>
     <?php
         unset($_POST['player_turn']);
         unset($_POST['opponent_turn']);

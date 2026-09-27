@@ -37,8 +37,10 @@ $(document).ready(function() {
                 $('#player_error').text(playerData['error'] || 'The game state is incomplete. Refresh and choose the game again.');
                 return false;
             }
-        var isPlayerTurn = playerData['playerUp'] === playerData['player']['id'];
-        $('#player_attack').prop('disabled', !isPlayerTurn);
+            $('.player, .monitor, .gamelog').removeClass('hidden');
+            var gameStatus = playerData['gameStatus'] || 'active';
+            var isPlayerTurn = playerData['playerUp'] === playerData['player']['id'];
+            $('#player_attack').prop('disabled', !isPlayerTurn || gameStatus !== 'active');
         if (!isPlayerTurn) {
             $('#player_error').text('Wait for the other player to take their turn.');
         } else {
@@ -54,6 +56,7 @@ $(document).ready(function() {
         updateLog(log, replaceLog);
        $('#link_friend_form_playerId').val(playerData['player']['id']);
         $('#player_points').val(playerData['f1']['points']);
+        $('#targetScoreStatus').text('Target score: ' + playerData['targetScore']).removeClass('hidden');
         $('#player_heading').text(playerData['f1']['name']);
         $('#player_shopName').text(playerData['f1']['name'] + ' Shop');
         $('#player_flak').val(playerData['f1']['flak']);
@@ -66,6 +69,31 @@ $(document).ready(function() {
         }); 
         if($("#player_rockets option").filter(function(){ return this.value === selectedRocket; }).length){
             $("#player_rockets").val(selectedRocket);
+        }
+
+        if (gameStatus === 'won') {
+            var winnerName = playerData['winnerId'] === playerData['player']['id']
+                ? playerData['f1']['name']
+                : playerData['f2']['name'];
+            var currentHighScore = Math.max(Number(playerData['f1']['points']), Number(playerData['f2']['points']));
+            var nextMinimum = currentHighScore + 1;
+            var nextTarget = Math.max(Number(playerData['targetScore']) + 1000, nextMinimum);
+            $('#winnerAnnouncement').text(winnerName + ' wins by reaching ' + playerData['targetScore'] + ' points.');
+            $('#outcomeHandlerId').val(playerData['handlerId']);
+            $('#next_target_score').attr('min', nextMinimum).val(nextTarget);
+            $('#nextTargetForm').toggleClass('hidden', currentHighScore >= 1000000000);
+            $('#gameOutcome').removeClass('hidden');
+            $('#gameEnded').addClass('hidden');
+        } else if (gameStatus === 'ended') {
+            $('#gameOutcome, #targetScoreStatus').addClass('hidden');
+            $('#gameEnded').removeClass('hidden');
+            $('.player, .monitor, .gamelog').addClass('hidden');
+            if (gamePoll) {
+                clearInterval(gamePoll);
+                gamePoll = null;
+            }
+        } else {
+            $('#gameOutcome, #gameEnded').addClass('hidden');
         }
         return true;
     }
@@ -218,13 +246,15 @@ $(document).ready(function() {
 
         $('#login_error').text('').addClass('hidden');
         $('#loginForm, #signupForm').addClass('hidden');
+        $('.player, .monitor, .gamelog').addClass('hidden');
+        $('#gameOutcome, #gameEnded, #targetScoreStatus').addClass('hidden');
         $('#linkId').removeClass('hidden');
         sessionStorage.setItem('pId', jsonData.playerId);
         sessionStorage.setItem('playerId', jsonData.playerId);
         $('#options_playerId, #link_friend_form_playerId').val(jsonData.playerId);
 
         if (jsonData.handlerExists) {
-            $('.player, .monitor, .gamelog, #gameOptions').removeClass('hidden');
+            $('#gameOptions').removeClass('hidden');
             $('.account_switch').addClass('hidden');
 
             var fortresses = jsonData.fortresses;
@@ -237,7 +267,8 @@ $(document).ready(function() {
             $.each(fortresses, function(index, fortress) {
                 var optionId = 'game-option-' + index;
                 var description = fortress.playerFortressName + ' with ' + fortress.playerFortressPoints +
-                    ' points, versus ' + fortress.opponentFortressName + ' with ' + fortress.opponentFortressPoints + ' points';
+                    ' points, versus ' + fortress.opponentFortressName + ' with ' + fortress.opponentFortressPoints +
+                    ' points (target: ' + fortress.targetScore + ')';
                 var $option = $('<div>', {class: 'option'});
                 var $radio = $('<input>', {
                     type: 'radio',
@@ -249,6 +280,7 @@ $(document).ready(function() {
                 $fieldset.append($option.append($radio, $label));
             });
         } else {
+            $('#gameOptions').addClass('hidden');
             $('#new_game_playerId').val(jsonData.playerId);
             $('#newGame').removeClass('hidden');
         }
@@ -340,6 +372,69 @@ $(document).ready(function() {
                 }
             });
      });
+
+    $('#nextTargetForm').submit(function(e) {
+        e.preventDefault();
+        $('#targetScoreError').text('');
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            data: $(this).serialize(),
+            success: function(data) {
+                var jsonData = JSON.parse(data);
+                if (jsonData.error) {
+                    $('#targetScoreError').text(jsonData.error);
+                    return;
+                }
+                updatePlayer(data, true);
+                updateOpponent(data);
+                startGamePolling();
+            },
+            error: function() {
+                $('#targetScoreError').text('Unable to update the target score. Please try again.');
+            }
+        });
+    });
+
+    $('#endGameButton').on('click', function() {
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            data: {end_game: 1, handlerId: $('#outcomeHandlerId').val()},
+            success: function(data) {
+                var jsonData = JSON.parse(data);
+                if (jsonData.error) {
+                    $('#targetScoreError').text(jsonData.error);
+                    return;
+                }
+                updatePlayer(data, true);
+                updateOpponent(data);
+                sessionStorage.removeItem('handlerId');
+                sessionStorage.removeItem('hId');
+                if (gamePoll) {
+                    clearInterval(gamePoll);
+                    gamePoll = null;
+                }
+            },
+            error: function() {
+                $('#targetScoreError').text('Unable to end the game. Please try again.');
+            }
+        });
+    });
+
+    $('#returnToGames').on('click', function() {
+        sessionStorage.removeItem('handlerId');
+        sessionStorage.removeItem('hId');
+        $.ajax({
+            type: 'POST',
+            url: 'handler.php',
+            dataType: 'json',
+            data: {restore_login: 1},
+            success: function(jsonData) {
+                renderLoggedInView(jsonData, false);
+            }
+        });
+    });
 
      /* Attack Handler */
     $('#player_attackForm').submit(function(e) {
