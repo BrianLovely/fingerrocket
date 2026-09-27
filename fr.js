@@ -165,7 +165,7 @@ $(document).ready(function() {
         }
         if (replaceLog && !logInitialized) {
             $("#gameLog").empty();
-            $.each(log, function(key, value){
+            $.each(log.slice().reverse(), function(key, value){
                 $("#gameLog").append("<p>" + value + "</p>");
             });
             knownLogLength = log.length;
