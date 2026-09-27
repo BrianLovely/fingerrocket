@@ -1,4 +1,7 @@
 $(document).ready(function() {
+    var attackInFlight = false;
+    var gameStateRevision = 0;
+    var currentGameStatus = 'active';
 
     $( document ).on( "ajaxError", function() {
         $( ".error" ).text( "Triggered ajaxError handler." );
@@ -39,6 +42,7 @@ $(document).ready(function() {
             }
             $('.player, .monitor, .gamelog').removeClass('hidden');
             var gameStatus = playerData['gameStatus'] || 'active';
+            currentGameStatus = gameStatus;
             var isPlayerTurn = playerData['playerUp'] === playerData['player']['id'];
             $('#player_attack').prop('disabled', !isPlayerTurn || gameStatus !== 'active');
         if (!isPlayerTurn) {
@@ -96,6 +100,10 @@ $(document).ready(function() {
             }
         } else {
             $('#gameOutcome, #gameEnded').addClass('hidden');
+        }
+        if (gameStatus !== 'active' && gamePoll) {
+            clearInterval(gamePoll);
+            gamePoll = null;
         }
         return true;
     }
@@ -194,18 +202,29 @@ $(document).ready(function() {
     function refreshGameState(){
         var playerId = sessionStorage.getItem('playerId');
         var handlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
-        if (!playerId || !handlerId || gamePollInFlight) {
+        if (!playerId || !handlerId || gamePollInFlight || attackInFlight || currentGameStatus !== 'active') {
             return;
         }
+        var requestRevision = gameStateRevision;
         gamePollInFlight = true;
         $.ajax({
             type: 'POST',
             url: 'handler.php',
             data: {refresh_playerId: playerId, refresh_handlerId: handlerId},
             success: function(data){
+                if (attackInFlight || requestRevision !== gameStateRevision) {
+                    return;
+                }
                 var jsonData = JSON.parse(data);
                 if (!jsonData['error'] && updatePlayer(data, true)) {
                     updateOpponent(data);
+                } else if (jsonData['error']) {
+                    $('#player_error').text(jsonData['error']);
+                }
+            },
+            error: function(){
+                if (requestRevision === gameStateRevision) {
+                    $('#player_error').text('Unable to refresh game state. Retrying.');
                 }
             },
             complete: function(){
@@ -447,29 +466,47 @@ $(document).ready(function() {
      /* Attack Handler */
     $('#player_attackForm').submit(function(e) {
         e.preventDefault();
-        console.log($(this).serialize());
+        if (attackInFlight || currentGameStatus !== 'active') {
+            return;
+        }
+        attackInFlight = true;
+        gameStateRevision++;
+        $('#player_attack').prop('disabled', true);
+        $('#player_error').text('Attack in progress...');
+        var attackFailed = false;
         $.ajax({
-            type: "POST",
+            type: 'POST',
             url: 'handler.php',
+            dataType: 'json',
             data: $(this).serialize(),
-            success: function(data)
-            {
-               var jsonData = JSON.parse(data);
-               if (jsonData['error']) {
-                   $('#player_error').text(jsonData['error']);
-                   if (jsonData['error'].indexOf('no longer available') !== -1) {
-                       refreshGameState();
-                   }
-                   return;
-               }
-               if (updatePlayer(data, false)) {
-                   updateOpponent(data);
-               }
-            }, error: function(xhr, status, error)
-                {
-                    console.log(error);
+            success: function(jsonData) {
+                if (jsonData.error) {
+                    attackFailed = true;
+                    $('#player_error').text(jsonData.error);
+                    return;
                 }
-            });
+                var response = JSON.stringify(jsonData);
+                if (updatePlayer(response, false)) {
+                    updateOpponent(response);
+                } else {
+                    attackFailed = true;
+                }
+            },
+            error: function(xhr, status, error) {
+                attackFailed = true;
+                $('#player_error').text('Attack request failed. Refreshing game state.');
+                console.error('Attack request failed:', status, error);
+            },
+            complete: function() {
+                attackInFlight = false;
+                if (currentGameStatus === 'active') {
+                    startGamePolling();
+                    if (attackFailed && !gamePollInFlight) {
+                        refreshGameState();
+                    }
+                }
+            }
+        });
      });
 
            /* Link Friend Id */
@@ -680,8 +717,8 @@ function traverse(jsonObj, jsonElements) {
      });
     
 
-      /* Restore the logged-in view after a browser refresh. */
-      $(window).on('load', function() {
+            /* Restore the logged-in view after a browser refresh. */
+            function restoreLoggedInView(){
         var persistedPlayerId = sessionStorage.getItem('playerId') || sessionStorage.getItem('pId') || sessionStorage.getItem('userid');
         var persistedHandlerId = sessionStorage.getItem('handlerId') || sessionStorage.getItem('hId');
         if (!persistedPlayerId) {
@@ -714,7 +751,8 @@ function traverse(jsonObj, jsonElements) {
                 sessionStorage.removeItem('pId');
             }
         });
-     });
+        }
+        restoreLoggedInView();
 
 
 
