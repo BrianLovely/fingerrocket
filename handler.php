@@ -870,27 +870,28 @@ public function packageGameChoices($assoc, $pId){
 public function loadGameFromOptions($pId, $hId){ 
     $this->selectCombatHandler($hId);
     $this->selectPlayer($pId);
-   // IDs in p1, p2, f1, f2 may not be in correct slots. Use $pId to sort them out
-    if($this->p1 != $pId){
-        //If player ID isn't in P1, 
-        $this->selectFriend($this->p1);
-        $tempRow = $this->selectFortress($this->f1);
-        $temp = $this->setUpFortress($tempRow);
-        $this->opponent->setFortress($temp);
-        $tempRow = $this->selectFortress($this->f2);
-        $temp = $this->setUpFortress($tempRow);
-        $this->player->setFortress($temp);
+    $playerIsFirst = $this->p1 == $pId;
+    $friendId = $playerIsFirst ? $this->p2 : $this->p1;
+    $playerFortressId = $playerIsFirst ? $this->f1 : $this->f2;
+    $opponentFortressId = $playerIsFirst ? $this->f2 : $this->f1;
+    $this->selectFriend($friendId);
 
-
-    }elseif($this->p1 == $pId){
-        $this->selectFriend($this->p2);
-        $tempRow = $this->selectFortress($this->f2);
-        $temp = $this->setUpFortress($tempRow);
-        $this->opponent->setFortress($temp);
-        $tempRow = $this->selectFortress($this->f1);
-        $temp = $this->setUpFortress($tempRow);
-        $this->player->setFortress($temp);
+    $statement = $this->mysqli->prepare('SELECT * FROM `fortress` WHERE id IN (?, ?)');
+    $statement->bind_param('ss', $playerFortressId, $opponentFortressId);
+    $statement->execute();
+    $result = $statement->get_result();
+    $fortressRows = array();
+    while($row = $result->fetch_assoc()){
+        $fortressRows[$row['id']] = $row;
     }
+    $result->free();
+    $statement->close();
+
+    if(!isset($fortressRows[$playerFortressId], $fortressRows[$opponentFortressId])){
+        return json_encode(array('error' => 'Game fortress data is unavailable.'));
+    }
+    $this->player->setFortress($this->setUpFortress($fortressRows[$playerFortressId]));
+    $this->opponent->setFortress($this->setUpFortress($fortressRows[$opponentFortressId]));
     $_SESSION['playerId'] = $this->player->getId();
     $_SESSION['friendId'] = $this->opponent->getId();
     return $this->package();
