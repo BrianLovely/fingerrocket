@@ -631,15 +631,21 @@ function selectCombatHandler($hId){
 
 //Find combat handler by player ID
 public function findCombatHandlers($pId){
-    $sql = 'SELECT * FROM `gamehandler` WHERE p1="' . $pId  .'" OR p2="' . $pId . '"';
-    $result = $this->mysqli->query($sql);
+    $sql = 'SELECT gamehandler.*, f1.name AS f1Name, f1.points AS f1Points, f2.name AS f2Name, f2.points AS f2Points
+            FROM `gamehandler`
+            LEFT JOIN `fortress` AS f1 ON gamehandler.f1 = f1.id
+            LEFT JOIN `fortress` AS f2 ON gamehandler.f2 = f2.id
+            WHERE gamehandler.p1 = ? OR gamehandler.p2 = ?';
+    $statement = $this->mysqli->prepare($sql);
+    $statement->bind_param('ss', $pId, $pId);
+    $statement->execute();
+    $result = $statement->get_result();
     $hArray = [];
-    if(mysqli_num_rows($result) > 0){
-        while ($row = $result->fetch_assoc()) {
-            array_push($hArray, $row);
-        }
-        mysqli_free_result($result);
+    while ($row = $result->fetch_assoc()) {
+        $hArray[] = $row;
     }
+    $result->free();
+    $statement->close();
     return $hArray;
     
 }//End function findCombatHandlers
@@ -833,25 +839,29 @@ public function findHandlerForBothPlayers($pId, $oId){
 //Find fortress names in available handlers
 public function packageGameChoices($assoc, $pId){
     $fArray = [];
-    foreach($assoc as $key=>$val){
+    foreach($assoc as $val){
         $tArray = [];
         if($val['p1'] == $pId){
-            $pFRow = $this->selectFortress($val['f1']);
-            $oFRow = $this->selectFortress($val['f2']);
+            $playerFortressName = $val['f1Name'];
+            $playerFortressPoints = $val['f1Points'];
+            $opponentFortressName = $val['f2Name'];
+            $opponentFortressPoints = $val['f2Points'];
         }elseif($val['p2'] == $pId){
-            $pFRow = $this->selectFortress($val['f2']);
-            $oFRow = $this->selectFortress($val['f1']);
+            $playerFortressName = $val['f2Name'];
+            $playerFortressPoints = $val['f2Points'];
+            $opponentFortressName = $val['f1Name'];
+            $opponentFortressPoints = $val['f1Points'];
         }else{
             continue;
         }
-        if($pFRow === NULL || $oFRow === NULL){
+        if($playerFortressName === NULL || $opponentFortressName === NULL){
             continue;
         }
         $tArray['handlerId'] = $val['id'];
-        $tArray['playerFortressName'] = $pFRow['name'];
-        $tArray['playerFortressPoints'] = $pFRow['points'];
-        $tArray['opponentFortressName'] = $oFRow['name'];
-        $tArray['opponentFortressPoints'] = $oFRow['points'];
+        $tArray['playerFortressName'] = $playerFortressName;
+        $tArray['playerFortressPoints'] = $playerFortressPoints;
+        $tArray['opponentFortressName'] = $opponentFortressName;
+        $tArray['opponentFortressPoints'] = $opponentFortressPoints;
         $fArray[] = $tArray;
     }
     return $fArray;
@@ -892,18 +902,20 @@ function authPlayer($username, $pass){
         $tArray['handlerExists'] = FALSE;
 
         /* Get matching player if any */
-        $sql = 'SELECT * FROM `players` WHERE username="' . $username . '" AND pass="' . $pass .'"';
-        $result = $this->mysqli->query($sql);
+        $statement = $this->mysqli->prepare('SELECT id FROM `players` WHERE username = ? AND pass = ? LIMIT 1');
+        $statement->bind_param('ss', $username, $pass);
+        $statement->execute();
+        $result = $statement->get_result();
         $row = $result->fetch_assoc();
-        mysqli_free_result($result);
+        $result->free();
+        $statement->close();
 
         if($row !== NULL && !empty($row)){
             $tArray['playerExists'] = TRUE;
             $_SESSION['playerId'] = $row['id'];
             $tArray['playerId'] = $row['id'];
-            $handlerExists = $this->handlerExists($row['id']);
-            if($handlerExists){
-                $handlers = $this->findCombatHandlers($row['id']);
+            $handlers = $this->findCombatHandlers($row['id']);
+            if(!empty($handlers)){
                 $tArray['handlerExists'] = true;
                 $tArray['fortresses'] = $this->packageGameChoices($handlers, $row['id']);
             }
