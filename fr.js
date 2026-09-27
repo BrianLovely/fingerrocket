@@ -48,6 +48,8 @@ $(document).ready(function() {
         }
         sessionStorage.setItem('playerId', playerData['player']['id']);
         sessionStorage.setItem('handlerId', playerData['handlerId']);
+        $('#attack_pId').val(playerData['player']['id']);
+        $('#attack_hId').val(playerData['handlerId']);
         var playerArmory = playerData['f1']['armory'];
         var log = playerData['log'];
         var items = JSON.parse(playerData['player']['items'] || '[]');
@@ -163,6 +165,12 @@ $(document).ready(function() {
             return;
         }
         if (replaceLog) {
+            if (log.length < knownLogLength) {
+                $('#gameLog').empty();
+                appendLogEntries(log.slice().reverse());
+                knownLogLength = log.length;
+                return;
+            }
             var newCount = log.length - knownLogLength;
             if(newCount > 0){
                 appendLogEntries(log.slice(0, newCount).reverse());

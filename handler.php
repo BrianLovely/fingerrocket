@@ -168,7 +168,7 @@ class combatHandler
 
     public function storeGameLog(){
         if(count($this->gameLog) > 100){
-            $temp = array_slice($this->gameLog, -1, 50);
+            $temp = array_slice($this->gameLog, -50);
             unset($this->gameLog);
             $this->gameLog = $temp;
         }
@@ -1233,18 +1233,22 @@ if(isset($_POST['end_game']) && isset($_POST['handlerId'])){
 //$_SESSION['playerId'] = "681f762053cb6";
 //$_SESSION['friendId'] = "681f762053cb5";
  if(isset($_POST['player_rockets'])){
-    $handlerId = $_SESSION['handlerId'] ?? NULL;
-    if ($handlerId === NULL || !$ch->isPlayerTurn($_SESSION['playerId'], $handlerId)) {
+    $playerId = $_POST['attack_pId'] ?? NULL;
+    $handlerId = $_POST['attack_hId'] ?? NULL;
+    if ($playerId === NULL || $handlerId === NULL || !$ch->isPlayerTurn($playerId, $handlerId)) {
         echo json_encode(['error' => 'It is not your turn. Wait for the other player to attack.']);
     } else {
-        $ch->findHandlerForBothPlayers($_SESSION['playerId'], $_SESSION['friendId']);
-        $rocket = $ch->player->fortress->getRocket($_POST['player_rockets']);
-        if ($rocket === NULL) {
-            echo json_encode(['error' => 'That rocket is no longer available. Refresh the game state and choose another rocket.']);
+        $gameState = json_decode($ch->loadGameFromOptions($playerId, $handlerId), true);
+        if(isset($gameState['error'])){
+            echo json_encode($gameState);
         } else {
-            $ch->handleCombat($rocket);
-            //pass false to package to only update log from buffer
-            echo $ch->package(false);
+            $rocket = $ch->player->fortress->getRocket($_POST['player_rockets']);
+            if ($rocket === NULL) {
+                echo json_encode(['error' => 'That rocket is no longer available. Refresh the game state and choose another rocket.']);
+            } else {
+                $ch->handleCombat($rocket);
+                echo $ch->package(false);
+            }
         }
     }
     unset($_POST['player_rockets']);
