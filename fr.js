@@ -207,60 +207,63 @@ $(document).ready(function() {
         });
     });
 
-      /* Log In */
-        $('#fr_login').submit(function(e) {  
+    /* Log In */
+    $('#fr_login').submit(function(e) {
         e.preventDefault();
+        $('#login_error').text('').addClass('hidden');
+
         $.ajax({
-        type: "POST",
-        url: 'handler.php',
-        dataType: 'json',
-        data: $(this).serialize(),
-        success: function(jsonData)
-        {
-            if (!jsonData || !jsonData['playerExists']) {
-                $('#login_error').text('Invalid email or password.').removeClass('hidden');
-                return;
+            type: 'POST',
+            url: 'handler.php',
+            dataType: 'json',
+            data: $(this).serialize(),
+            success: function(jsonData) {
+                if (!jsonData || !jsonData.playerExists) {
+                    $('#login_error').text('Invalid email or password.').removeClass('hidden');
+                    return;
+                }
+
+                $('#loginForm').addClass('hidden');
+                $('#linkId').removeClass('hidden');
+                sessionStorage.setItem('pId', jsonData.playerId);
+                $('#options_playerId').val(jsonData.playerId);
+
+                if (jsonData.handlerExists) {
+                    $('.player, .monitor, .gameLog, #gameOptions').removeClass('hidden');
+                    $('.account_switch').addClass('hidden');
+
+                    var fortresses = jsonData.fortresses;
+                    if (!Array.isArray(fortresses)) {
+                        fortresses = fortresses && typeof fortresses === 'object' ? [fortresses] : [];
+                    }
+
+                    var $fieldset = $('#options_fieldset');
+                    $fieldset.children('.option').remove();
+                    $.each(fortresses, function(index, fortress) {
+                        var optionId = 'game-option-' + index;
+                        var description = fortress.playerFortressName + ' with ' + fortress.playerFortressPoints +
+                            ' points, versus ' + fortress.opponentFortressName + ' with ' + fortress.opponentFortressPoints + ' points';
+                        var $option = $('<div>', {class: 'option'});
+                        var $radio = $('<input>', {
+                            type: 'radio',
+                            name: 'options_handlerId',
+                            id: optionId,
+                            value: fortress.handlerId
+                        });
+                        var $label = $('<label>').attr('for', optionId).text(description);
+                        $fieldset.append($option.append($radio, $label));
+                    });
+                } else {
+                    $('#new_game_playerId').val(jsonData.playerId);
+                    $('#newGame').removeClass('hidden');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Login request failed:', status, error);
+                $('#login_error').text('Unable to complete login. Please try again.').removeClass('hidden');
             }
-
-            $('#login_error').text('').addClass('hidden');
-            $("#loginForm").addClass('hidden');
-            $("#linkId").removeClass('hidden');
-            console.log(jsonData['fortresses']);
-            sessionStorage.setItem('pId', jsonData['playerId']);
-            $("#options_playerId").val(jsonData['playerId']);
-                    if(jsonData['playerExists'] && jsonData['handlerExists']){
-                        //If player is in database and there is a handler, load existing games
-                        $(".player").removeClass('hidden');
-                        $(".monitor").removeClass('hidden');
-                        $(".gameLog").removeClass('hidden');
-                        $("#gameOptions").removeClass('hidden');
-                        $(".account_switch").addClass('hidden');
-                        fData = jsonData['fortresses'];
-                        if (Array.isArray(fData)) {
-                            $.each(fData, function(key, value) {
-                                $("#options_fieldset").append("<div class='option'><input type='radio' name='options_handlerId' id='" + key + "' value='" + value['handlerId'] + "'/>" + "<label for='" + key + "'>" + value['playerFortressName'] + " with " + value['playerFortressPoints'] + " points, versus " + value['opponentFortressName'] + " with " + value['opponentFortressPoints'] + " points</label></div>");
-                            });
-                        } else if (fData && typeof fData === 'object') {
-                            var key = 0;
-                            $("#options_fieldset").append("<div class='option'><input type='radio' name='options_handlerId' id='" + key + "' value='" + fData['handlerId'] + "'/>" + "<label for='" + key + "'>" + fData['playerFortressName'] + " with " + fData['playerFortressPoints'] + " points, versus " + fData['opponentFortressName'] + " with " + fData['opponentFortressPoints'] + " points</label></div>");
-                        }
-                    }
-                    if(jsonData['playerExists'] && !jsonData['handlerExists']){
-                        //If player is in database but no handler exists, show new game button
-                        console.log("playerId: " + jsonData['playerId'] );
-                        $("#new_game_playerId").val(jsonData['playerId'] );
-                        $("#newGame").removeClass('hidden');
-                    }
-            //var log = jsonData['log'];
-            //updateOpponent(jsonData);
-       }, error: function(xhr, status, error)
-       {
-           console.error('Login request failed:', status, error);
-           $('#login_error').text('Unable to complete login. Please try again.').removeClass('hidden');
-       }
-   });
-
-     });
+        });
+    });
     
 
   $("#fr_signup").submit(function(e) {
